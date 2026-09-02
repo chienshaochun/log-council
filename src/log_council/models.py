@@ -6,6 +6,16 @@ from typing import Any, Literal
 
 
 Stance = Literal["supporting", "contradicting", "context"]
+MessageKind = Literal[
+    "task",
+    "finding",
+    "hypothesis",
+    "review_request",
+    "challenge",
+    "revision_request",
+    "revision",
+    "decision",
+]
 
 
 @dataclass(frozen=True)
@@ -90,6 +100,21 @@ class Handoff:
 
 
 @dataclass(frozen=True)
+class AgentMessage:
+    message_id: str
+    run_id: str
+    sequence: int
+    sender: str
+    recipient: str
+    kind: MessageKind
+    subject: str
+    body: str
+    evidence_ids: tuple[str, ...] = ()
+    payload_refs: tuple[str, ...] = ()
+    in_reply_to: str | None = None
+
+
+@dataclass(frozen=True)
 class Activity:
     step: int
     agent: str
@@ -124,6 +149,8 @@ class AnalysisReport:
     caveat: str
     evidence_chain: list[str]
     recommended_actions: list[str]
+    run_id: str = ""
+    agent_messages: list[AgentMessage] = field(default_factory=list)
     generated_at: datetime = field(default_factory=datetime.now)
 
     @property
@@ -137,6 +164,8 @@ class AnalysisReport:
     def to_dict(self, include_events: bool = True) -> dict[str, Any]:
         data: dict[str, Any] = {
             "generated_at": self.generated_at.isoformat(),
+            "schema_version": "0.1",
+            "run_id": self.run_id,
             "summary": {
                 "root_cause": self.root_cause,
                 "confidence": round(self.confidence, 3),
@@ -149,6 +178,7 @@ class AnalysisReport:
             "hypotheses": [item.to_dict() for item in self.hypotheses],
             "findings": [item.to_dict() for item in self.findings],
             "handoffs": [asdict(item) for item in self.handoffs],
+            "agent_messages": [asdict(item) for item in self.agent_messages],
             "activities": [asdict(item) for item in self.activities],
             "stats": {
                 "event_count": len(self.events),

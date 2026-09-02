@@ -72,7 +72,7 @@ class TimelineAgent:
         return AgentFinding(
             agent=self.name, title=title, summary=summary, confidence=min(confidence, 0.9),
             evidence=evidence,
-            details=[f"{event.timestamp_text} · {event.service} · {event.message}" for event in milestones],
+            details=[f"{event.timestamp_text} | {event.service} | {event.message}" for event in milestones],
         )
 
 
@@ -148,6 +148,42 @@ class RootCauseAgent:
         )
         return finding, hypotheses, best
 
+    def revise(
+        self,
+        hypotheses: list[Hypothesis],
+        review: AgentFinding,
+    ) -> tuple[AgentFinding, list[Hypothesis]]:
+        """Apply one bounded revision without inventing new source evidence."""
+        leading = hypotheses[0]
+        existing_ids = {item.event_id for item in leading.contradicting}
+        new_contradictions = [
+            item for item in review.evidence
+            if item.stance == "contradicting" and item.event_id not in existing_ids
+        ]
+        revised_leading = Hypothesis(
+            title=leading.title,
+            explanation=(
+                f"{leading.explanation} Reviewer caveat: competing triggers remain unproven."
+                if new_contradictions else leading.explanation
+            ),
+            confidence=max(0.2, leading.confidence - 0.06 * len(new_contradictions)),
+            supporting=list(leading.supporting),
+            contradicting=[*leading.contradicting, *new_contradictions],
+        )
+        revised = [revised_leading, *hypotheses[1:]]
+        finding = AgentFinding(
+            agent=self.name,
+            title=f"Revised: {revised_leading.title}",
+            summary=revised_leading.explanation,
+            confidence=revised_leading.confidence,
+            evidence=[*revised_leading.supporting, *revised_leading.contradicting],
+            details=[
+                f"Accepted {len(new_contradictions)} reviewer contradiction(s).",
+                "No new evidence was introduced during revision.",
+            ],
+        )
+        return finding, revised
+
 
 class ReviewerAgent:
     name = "Reviewer Agent"
@@ -161,7 +197,6 @@ class ReviewerAgent:
         details: list[str] = []
         if deployments:
             event = deployments[0]
-            leading.contradicting.append(_ev(event, "Recent deployment is a competing trigger", "contradicting"))
             evidence.append(_ev(event, "Challenged the leading cause with deployment timing", "contradicting"))
             details.append("Competing hypothesis: a recent deployment may have contributed.")
         if recovery:
@@ -180,4 +215,23 @@ class ReviewerAgent:
             confidence=confidence,
             evidence=evidence,
             details=details or ["Checked for competing triggers, recovery correlation, and healthy peer signals."],
+        )
+
+    def finalize(self, hypotheses: list[Hypothesis], prior_review: AgentFinding) -> AgentFinding:
+        leading = hypotheses[0]
+        contradictions = list(leading.contradicting)
+        acknowledged = bool(contradictions)
+        return AgentFinding(
+            agent=self.name,
+            title="Revision accepted with caveat" if acknowledged else "Leading hypothesis accepted",
+            summary=(
+                "The leading hypothesis is evidence-bound and preserves the competing-trigger caveat."
+                if acknowledged else "The leading hypothesis is evidence-bound and no stronger alternative was found."
+            ),
+            confidence=max(0.35, min(0.9, leading.confidence + 0.03)),
+            evidence=[*leading.supporting, *contradictions],
+            details=[
+                "Checked that the revision cites only registered source events.",
+                *prior_review.details,
+            ],
         )

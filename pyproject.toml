@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "log-council"
+version = "0.1.0"
+description = "Evidence-first multi-agent log analysis workbench"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10"]
+ui = ["streamlit>=1.40,<2"]
+
+[project.scripts]
+log-council = "log_council.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q -p no:cacheprovider"
+testpaths = ["tests"]
+pythonpath = ["src"]
+

@@ -31,6 +31,16 @@ python -m pip install -e ".[dev,ui]"
 python -m pytest
 ```
 
+## 真實 Log 資料
+
+第一個整合資料集是 Loghub OpenStack 2k parser sample。第三方原始資料不會提交至本 repository；來源、固定版本、checksum 與下載方式請參閱 [`data/README.md`](data/README.md)。
+
+```powershell
+python scripts/download_dataset.py loghub-openstack-2k
+```
+
+下載後執行測試，會額外逐行比對 LogCouncil 的解析結果與 Loghub 官方 structured reference。
+
 ## 目前支援的輸入
 
 - 每行一個 JSON object 的 JSONL

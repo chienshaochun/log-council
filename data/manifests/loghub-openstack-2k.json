@@ -1,0 +1,39 @@
+{
+  "dataset_id": "loghub-openstack-2k",
+  "name": "Loghub OpenStack 2k Sample",
+  "version": "git-dd61d0952749",
+  "source_repository": "https://github.com/logpai/loghub",
+  "source_revision": "dd61d0952749ee7963bde24220d1be5ede023033",
+  "environment": "OpenStack on CloudLab with normal and injected-failure cases",
+  "license_notice": "Freely available for research or academic work; reference Loghub and cite the dataset papers where applicable.",
+  "citation": [
+    "Min Du, Feifei Li, Guineng Zheng, Vivek Srikumar. DeepLog: Anomaly Detection and Diagnosis from System Logs through Deep Learning. CCS 2017.",
+    "Jieming Zhu, Shilin He, Pinjia He, Jinyang Liu, Michael R. Lyu. Loghub: A Large Collection of System Log Datasets for AI-driven Log Analytics. ISSRE 2023."
+  ],
+  "files": [
+    {
+      "name": "OpenStack_2k.log",
+      "role": "raw_logs",
+      "url": "https://raw.githubusercontent.com/logpai/loghub/dd61d0952749ee7963bde24220d1be5ede023033/OpenStack/OpenStack_2k.log",
+      "sha256": "025a1bc64ff5b2ef4a4bda6c4ad5c5c5f18478b71cd1ad2b0676e01625629f2f",
+      "expected_lines": 2000,
+      "max_bytes": 1000000
+    },
+    {
+      "name": "OpenStack_2k.log_structured.csv",
+      "role": "reference_parsing",
+      "url": "https://raw.githubusercontent.com/logpai/loghub/dd61d0952749ee7963bde24220d1be5ede023033/OpenStack/OpenStack_2k.log_structured.csv",
+      "sha256": "ecc88e7909777181824260e9bdacd1469bd24d55131d6fc14e9c8c17edc49ff0",
+      "expected_lines": 2001,
+      "max_bytes": 1200000
+    },
+    {
+      "name": "OpenStack_2k.log_templates.csv",
+      "role": "reference_templates",
+      "url": "https://raw.githubusercontent.com/logpai/loghub/dd61d0952749ee7963bde24220d1be5ede023033/OpenStack/OpenStack_2k.log_templates.csv",
+      "sha256": "1224f332d48f91a122696d8bc88b5d23649fd7a7361e3eb1e4e57986526aac36",
+      "expected_lines": 44,
+      "max_bytes": 10000
+    }
+  ]
+}

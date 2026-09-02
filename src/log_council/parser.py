@@ -20,7 +20,7 @@ TEXT_LOG = re.compile(
 TRACE_PATTERN = re.compile(r"(?:trace[_-]?id|trace)=['\"]?([\w.-]+)", re.IGNORECASE)
 
 
-def _timestamp(value: Any) -> datetime | None:
+def parse_timestamp(value: Any) -> datetime | None:
     if value is None or value == "":
         return None
     text = str(value).strip().replace("Z", "+00:00")
@@ -50,7 +50,7 @@ def _json_event(data: dict[str, Any], raw: str, index: int) -> LogEvent:
     trace_id = data.get("trace_id") or data.get("trace")
     return LogEvent(
         id=event_id,
-        timestamp=_timestamp(data.get("ts") or data.get("timestamp") or data.get("time")),
+        timestamp=parse_timestamp(data.get("ts") or data.get("timestamp") or data.get("time")),
         level=level,
         service=service,
         message=message,
@@ -71,7 +71,7 @@ def _text_event(line: str, index: int) -> LogEvent:
     trace_match = TRACE_PATTERN.search(values["message"])
     return LogEvent(
         id=f"EVT-{index:03d}",
-        timestamp=_timestamp(values["ts"]),
+        timestamp=parse_timestamp(values["ts"]),
         level=values["level"].upper(),
         service=values.get("service") or "unknown",
         message=values["message"],

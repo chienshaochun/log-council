@@ -65,7 +65,7 @@ ollama list
 streamlit run app.py
 ```
 
-完成規則式分析後，開啟「本機 AI 問答」分頁並啟用 Ollama。LogCouncil 只會把已遮蔽常見秘密與 email、最多 30 筆的高價值事件送到 `http://localhost:11434`；LLM 選出的直接證據會由程式以遮蔽後的事件內容呈現，模型產生的可能原因則明確標示為推測。這項功能不需要 Ollama 帳號、外部 API key 或付費額度。
+完成規則式分析後，開啟「本機 AI 問答」分頁並啟用 Ollama。LogCouncil 只會把已遮蔽常見秘密與 email、最多 30 筆的高價值事件送到 `http://localhost:11434`；LLM 選出的直接證據會由程式以遮蔽後的事件內容呈現，模型產生的可能原因則明確標示為推測。模型產生的摘要、推測、建議與限制會再經 OpenCC `s2twp` 轉為臺灣繁體；直接證據為避免改動原始內容，仍保留 Log 本身的用字。這項功能不需要 Ollama 帳號、外部 API key 或付費額度。
 
 本機 Ollama 無法由 Streamlit Community Cloud 連線，因此公開部署仍使用原有規則式分析；使用本機 LLM 問答時，請在安裝 Ollama 的同一部電腦上執行 Streamlit。
 

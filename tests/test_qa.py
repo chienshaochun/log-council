@@ -147,6 +147,36 @@ class LogAnswerTests(unittest.TestCase):
         self.assertEqual(answer.facts[0].message, "database connection pool usage=100%")
         self.assertEqual(answer.hypotheses[0].confidence, "medium")
 
+    def test_answer_normalizes_generated_text_but_preserves_log_evidence(self) -> None:
+        payload = valid_answer()
+        payload["summary"] = "数据库连接池超时。"
+        payload["hypotheses"][0]["statement"] = "服务器负载可能过高。"
+        payload["next_actions"][0] = {
+            "action": "检查状态码。",
+            "reason": "确认日志中的异常。",
+        }
+        payload["limitations"] = ["目前日志不足。"]
+        events = {
+            event["id"]: event for event in sample_report()["events"]
+        }
+        events["EVT-002"] = {
+            **events["EVT-002"],
+            "message": "服务器连接池使用率=100%",
+        }
+
+        answer = LogAnswer.from_mapping(
+            payload,
+            evidence_events=events,
+            model="test-model",
+        )
+
+        self.assertEqual(answer.summary, "資料庫連線池超時。")
+        self.assertEqual(answer.hypotheses[0].statement, "伺服器負載可能過高。")
+        self.assertEqual(answer.next_actions[0].action, "檢查狀態碼。")
+        self.assertEqual(answer.next_actions[0].reason, "確認日誌中的異常。")
+        self.assertEqual(answer.limitations, ("目前日誌不足。",))
+        self.assertEqual(answer.facts[0].message, "服务器连接池使用率=100%")
+
     def test_answer_rejects_unknown_evidence_id(self) -> None:
         payload = valid_answer()
         payload["evidence_ids"] = ["EVT-999"]

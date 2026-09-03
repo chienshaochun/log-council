@@ -13,7 +13,7 @@ dependencies = []
 [project.optional-dependencies]
 datasets = ["pyarrow>=18,<26"]
 dev = ["pytest>=8,<10"]
-ui = ["streamlit==1.63.0"]
+ui = ["streamlit==1.63.0", "opencc==1.4.2"]
 
 [project.scripts]
 log-council = "log_council.cli:main"

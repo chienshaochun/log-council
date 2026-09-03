@@ -274,6 +274,7 @@ def _render_qa_answer(answer: LogAnswer) -> None:
     st.write(answer.summary)
 
     st.markdown("**直接證據**")
+    st.caption("直接證據保留原始 Log 用字；下方模型產生的文字會統一轉為臺灣繁體。")
     for fact in answer.facts:
         st.code(
             f"{fact.event_id} | {fact.timestamp} | {fact.level} | "

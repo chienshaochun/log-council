@@ -31,7 +31,7 @@ class DeploymentContractTests(unittest.TestCase):
 
         self.assertEqual(
             pyproject["project"]["optional-dependencies"]["ui"],
-            ["streamlit==1.63.0"],
+            ["streamlit==1.63.0", "opencc==1.4.2"],
         )
         self.assertEqual(config["server"]["maxUploadSize"], 50)
 

@@ -8,6 +8,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
+import opencc
+
 from .redaction import redact_value
 
 
@@ -15,8 +17,14 @@ DEFAULT_OLLAMA_URL = "http://localhost:11434"
 DEFAULT_OLLAMA_MODEL = "qwen3.5:2b-q4_K_M"
 DEFAULT_CONTEXT_LENGTH = 4096
 MAX_EVIDENCE_EVENTS = 30
+TAIWAN_TRADITIONAL_CONVERTER = opencc.OpenCC("s2twp.json")
 
 Confidence = Literal["low", "medium", "high"]
+
+
+def to_taiwan_traditional(text: str) -> str:
+    """Normalize model-generated Chinese to Taiwan Traditional Chinese."""
+    return TAIWAN_TRADITIONAL_CONVERTER.convert(text)
 
 
 ANSWER_SCHEMA: dict[str, Any] = {
@@ -177,11 +185,26 @@ class LogAnswer:
             _non_empty_text(item, "limitations") for item in raw_limitations
         )
         return cls(
-            summary=summary,
+            summary=to_taiwan_traditional(summary),
             facts=facts,
-            hypotheses=hypotheses,
-            next_actions=actions,
-            limitations=limitations,
+            hypotheses=tuple(
+                HypothesisClaim(
+                    statement=to_taiwan_traditional(item.statement),
+                    evidence_ids=item.evidence_ids,
+                    confidence=item.confidence,
+                )
+                for item in hypotheses
+            ),
+            next_actions=tuple(
+                NextAction(
+                    action=to_taiwan_traditional(item.action),
+                    reason=to_taiwan_traditional(item.reason),
+                )
+                for item in actions
+            ),
+            limitations=tuple(
+                to_taiwan_traditional(item) for item in limitations
+            ),
             model=model,
         )
 

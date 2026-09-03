@@ -31,6 +31,22 @@ python -m pip install -e ".[datasets,dev,ui]"
 python -m pytest
 ```
 
+## 使用 CLI 分析 Log
+
+在終端顯示分析摘要：
+
+```powershell
+log-council analyze .\incident.log
+```
+
+同時輸出 deterministic、已遮蔽常見秘密的 JSON 報告：
+
+```powershell
+log-council analyze .\incident.log --output .\report.json
+```
+
+使用 `--json` 將 JSON 印到 stdout、`--omit-events` 縮小報告，或在確認後使用 `--force` 覆寫既有輸出。CLI 僅接受 UTF-8 的 `.log`、`.txt`、`.jsonl`，也可用 `-` 從 stdin 讀取。
+
 ## 真實 Log 資料
 
 目前整合 Loghub OpenStack 2k parser sample 與 RCAEval RE3-OB logs-only 根因案例。第三方原始資料不會提交至本 repository；來源、固定版本、checksum 與下載方式請參閱 [`data/README.md`](data/README.md)。

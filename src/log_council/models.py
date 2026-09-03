@@ -171,9 +171,12 @@ class AnalysisReport:
             return "moderate confidence"
         return "no reliable consensus"
 
-    def to_dict(self, include_events: bool = True) -> dict[str, Any]:
+    def to_dict(
+        self,
+        include_events: bool = True,
+        include_runtime_metadata: bool = True,
+    ) -> dict[str, Any]:
         data: dict[str, Any] = {
-            "generated_at": self.generated_at.isoformat(),
             "schema_version": "0.1",
             "run_id": self.run_id,
             "summary": {
@@ -198,6 +201,8 @@ class AnalysisReport:
                 "services": sorted({e.service for e in self.events}),
             },
         }
+        if include_runtime_metadata:
+            data["generated_at"] = self.generated_at.isoformat()
         if include_events:
             data["events"] = [event.to_dict() for event in self.events]
         return data

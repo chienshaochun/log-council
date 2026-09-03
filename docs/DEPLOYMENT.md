@@ -22,6 +22,17 @@ Community Cloud reads the root `requirements.txt`, which installs LogCouncil wit
 
 The root `.streamlit/config.toml` keeps the platform upload limit aligned with LogCouncil's 50 MB application-level validation. No `packages.txt` is required because the app has no external Debian package dependency.
 
+## Automated deployment gate
+
+GitHub Actions repeats the same gate used by the previous Streamlit projects on Ubuntu and Python 3.12:
+
+1. install the root `requirements.txt` plus pytest;
+2. run the complete test suite;
+3. execute `python scripts/validate_deployment.py` against the committed root `app.py`;
+4. require the full pasted-log analysis flow, all five result tabs, four summary metrics, and the safe JSON download to render without a Streamlit exception or error.
+
+Do not deploy a commit until the `CI / test-and-deployment-smoke` check is green.
+
 ## Post-deploy check
 
 1. Open the assigned `streamlit.app` URL.

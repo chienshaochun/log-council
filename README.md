@@ -57,6 +57,8 @@ streamlit run app.py
 
 部署至 Streamlit Community Cloud 時，請使用根目錄的 `app.py` 與 Python 3.12。完整欄位與部署後檢查請參閱 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)。
 
+發布前必須確認 GitHub Actions 的 `CI / test-and-deployment-smoke` 為綠燈；它會在 Ubuntu／Python 3.12 執行完整 pytest 與 `app.py` 分析流程驗證。
+
 隱私提醒：本機啟動時 log 留在本機程序；使用 Community Cloud 時，上傳內容會傳到 Streamlit 的雲端執行環境。LogCouncil 不會再把內容轉送至外部 LLM/API，但公開部署不等同本機處理，請勿上傳未獲授權的敏感 production logs。
 
 ## 真實 Log 資料

@@ -35,6 +35,17 @@ class DeploymentContractTests(unittest.TestCase):
         )
         self.assertEqual(config["server"]["maxUploadSize"], 50)
 
+    def test_ci_matches_prior_project_deployment_flow(self) -> None:
+        workflow = (
+            PROJECT_ROOT / ".github" / "workflows" / "ci.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("runs-on: ubuntu-latest", workflow)
+        self.assertIn("python-version: '3.12'", workflow)
+        self.assertIn("pip install --disable-pip-version-check -r requirements.txt", workflow)
+        self.assertIn("run: python -m pytest", workflow)
+        self.assertIn("run: python scripts/validate_deployment.py", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

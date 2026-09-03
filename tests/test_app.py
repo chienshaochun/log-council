@@ -78,8 +78,20 @@ class StreamlitAppTests(unittest.TestCase):
         )
         self.assertEqual(
             [tab.label for tab in app.tabs],
-            ["總覽", "證據", "Agent 分析", "交接紀錄", "資料品質"],
+            [
+                "總覽",
+                "證據",
+                "Agent 分析",
+                "交接紀錄",
+                "資料品質",
+                "本機 AI 問答",
+            ],
         )
+        self.assertEqual(app.toggle[0].label, "啟用本機 LLM 問答（Ollama）")
+        self.assertFalse(app.toggle[0].value)
+        self.assertTrue(any(
+            "Streamlit Community Cloud" in item.value for item in app.info
+        ))
         self.assertTrue(any(
             "應用程式數值轉換溢位" in item.value
             for item in [*app.success, *app.warning]

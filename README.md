@@ -55,6 +55,20 @@ streamlit run app.py
 
 瀏覽器介面可貼上或上傳 log，查看 Overview、Evidence、Agents、Handoffs 與 Data quality，並下載已遮蔽常見秘密的 JSON 報告。分析在本機執行，不需要 API key，也不會執行建議的操作。
 
+### 選用：本機 LLM 問答
+
+若要在自己電腦上使用自然語言問答，先安裝並啟動 Ollama，再下載專案預設的小型量化模型：
+
+```powershell
+ollama pull qwen3.5:2b-q4_K_M
+ollama list
+streamlit run app.py
+```
+
+完成規則式分析後，開啟「本機 AI 問答」分頁並啟用 Ollama。LogCouncil 只會把已去識別化、最多 30 筆的高價值事件送到 `http://localhost:11434`；LLM 選出的直接證據會由程式以原始事件內容呈現，模型產生的可能原因則明確標示為推測。這項功能不需要 Ollama 帳號、外部 API key 或付費額度。
+
+本機 Ollama 無法由 Streamlit Community Cloud 連線，因此公開部署仍使用原有規則式分析；使用本機 LLM 問答時，請在安裝 Ollama 的同一部電腦上執行 Streamlit。
+
 部署至 Streamlit Community Cloud 時，請使用根目錄的 `app.py` 與 Python 3.12。完整欄位與部署後檢查請參閱 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)。
 
 發布前必須確認 GitHub Actions 的 `CI / test-and-deployment-smoke` 為綠燈；它會在 Ubuntu／Python 3.12 執行完整 pytest 與 `app.py` 分析流程驗證。

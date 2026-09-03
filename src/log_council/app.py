@@ -5,6 +5,13 @@ from typing import Any
 
 import streamlit as st
 
+from log_council.qa import (
+    DEFAULT_OLLAMA_MODEL,
+    LogAnswer,
+    OllamaError,
+    OllamaProvider,
+    OllamaUnavailableError,
+)
 from log_council.reporting import build_safe_report, serialize_report
 
 
@@ -263,15 +270,120 @@ def _render_data_quality(payload: dict[str, Any]) -> None:
     st.dataframe(localized_rows(preview), width="stretch", hide_index=True)
 
 
+def _render_qa_answer(answer: LogAnswer) -> None:
+    st.write(answer.summary)
+
+    st.markdown("**直接證據**")
+    for fact in answer.facts:
+        st.code(
+            f"{fact.event_id} | {fact.timestamp} | {fact.level} | "
+            f"{fact.service} | {fact.message}",
+            language="text",
+        )
+
+    if answer.hypotheses:
+        st.markdown("**可能原因（推測）**")
+        confidence_labels = {"high": "高", "medium": "中", "low": "低"}
+        for hypothesis in answer.hypotheses:
+            references = ", ".join(hypothesis.evidence_ids)
+            confidence = confidence_labels[hypothesis.confidence]
+            st.markdown(
+                f"- {hypothesis.statement}（信心：{confidence}；證據：{references}）"
+            )
+
+    if answer.next_actions:
+        st.markdown("**建議檢查步驟**")
+        for index, action in enumerate(answer.next_actions, start=1):
+            st.markdown(f"{index}. {action.action}  \n   原因：{action.reason}")
+
+    if answer.limitations:
+        st.markdown("**目前限制**")
+        for limitation in answer.limitations:
+            st.warning(limitation)
+
+    st.caption(f"本機模型：{answer.model} · 回答可能有誤，操作前請核對直接證據。")
+
+
+def _render_local_qa(payload: dict[str, Any]) -> None:
+    st.subheader("本機 LLM 問答")
+    st.caption(
+        "選用功能：去識別化後的證據會送到本機 Ollama（localhost），"
+        "不使用外部 API，也不會自動執行任何建議。"
+    )
+    st.info(
+        "這項功能只適用於在自己電腦上執行的 LogCouncil。"
+        "Streamlit Community Cloud 無法連線到你電腦上的 Ollama。"
+    )
+
+    enabled = st.toggle(
+        "啟用本機 LLM 問答（Ollama）",
+        value=False,
+        key="local_qa_enabled",
+    )
+    if not enabled:
+        st.caption("預設關閉；目前報告仍完全由可重播的規則式 Agents 產生。")
+        return
+
+    health_provider = OllamaProvider(model=DEFAULT_OLLAMA_MODEL, timeout_seconds=3)
+    try:
+        version = health_provider.healthcheck()
+    except OllamaUnavailableError as exc:
+        st.error(str(exc))
+        st.code("ollama serve", language="powershell")
+        return
+    except OllamaError as exc:
+        st.error(f"Ollama 狀態檢查失敗：{exc}")
+        return
+
+    st.success(f"Ollama {version} 已連線 · {DEFAULT_OLLAMA_MODEL}")
+    run_id = payload.get("run_id", "")
+    if st.session_state.get("local_qa_run_id") != run_id:
+        st.session_state["local_qa_history"] = []
+        st.session_state["local_qa_run_id"] = run_id
+
+    history = st.session_state.setdefault("local_qa_history", [])
+    for item in history:
+        with st.chat_message("user"):
+            st.write(item["question"])
+        with st.chat_message("assistant"):
+            _render_qa_answer(item["answer"])
+
+    question = st.chat_input(
+        "例如：發生了什麼問題？我接下來應該先檢查什麼？",
+        key="local_qa_question",
+    )
+    if question:
+        answer_provider = OllamaProvider(
+            model=DEFAULT_OLLAMA_MODEL,
+            timeout_seconds=120,
+        )
+        with st.chat_message("user"):
+            st.write(question)
+        with st.chat_message("assistant"):
+            with st.spinner("本機模型正在閱讀已篩選的證據…"):
+                try:
+                    answer = answer_provider.answer(question, payload)
+                except OllamaUnavailableError as exc:
+                    st.error(str(exc))
+                except OllamaError as exc:
+                    st.error(f"本機模型無法完成回答：{exc}")
+                except ValueError as exc:
+                    st.error(f"無法建立問答證據：{exc}")
+                else:
+                    _render_qa_answer(answer)
+                    history.append({"question": question, "answer": answer})
+
+
 def _render_report(payload: dict[str, Any]) -> None:
     st.divider()
     st.caption(f"分析 ID · {payload['run_id']}")
-    overview, evidence, agents, handoffs, quality = st.tabs([
+    overview, evidence, agents, handoffs, quality, qa = st.tabs([
         "總覽",
         "證據",
         "Agent 分析",
         "交接紀錄",
         "資料品質",
+        "本機 AI 問答",
     ])
     with overview:
         _render_overview(payload)
@@ -283,6 +395,8 @@ def _render_report(payload: dict[str, Any]) -> None:
         _render_handoffs(payload)
     with quality:
         _render_data_quality(payload)
+    with qa:
+        _render_local_qa(payload)
 
     st.download_button(
         "下載安全 JSON 報告",
@@ -310,6 +424,7 @@ def main() -> None:
         st.divider()
         st.info(
             "分析只在執行 LogCouncil 的環境中完成，不會送往外部 LLM/API。"
+            "若啟用本機 LLM，只有去識別化後的證據會傳給 localhost Ollama。"
             "若使用 Community Cloud，上傳內容會進入該雲端執行環境。"
             "畫面與下載報告會遮蔽常見秘密；原始輸入不會被修改。"
         )

@@ -47,6 +47,14 @@ log-council analyze .\incident.log --output .\report.json
 
 使用 `--json` 將 JSON 印到 stdout、`--omit-events` 縮小報告，或在確認後使用 `--force` 覆寫既有輸出。CLI 僅接受 UTF-8 的 `.log`、`.txt`、`.jsonl`，也可用 `-` 從 stdin 讀取。
 
+## 啟動 Web UI
+
+```powershell
+streamlit run src/log_council/app.py
+```
+
+瀏覽器介面可貼上或上傳 log，查看 Overview、Evidence、Agents、Handoffs 與 Data quality，並下載已遮蔽常見秘密的 JSON 報告。分析在本機執行，不需要 API key，也不會執行建議的操作。
+
 ## 真實 Log 資料
 
 目前整合 Loghub OpenStack 2k parser sample 與 RCAEval RE3-OB logs-only 根因案例。第三方原始資料不會提交至本 repository；來源、固定版本、checksum 與下載方式請參閱 [`data/README.md`](data/README.md)。

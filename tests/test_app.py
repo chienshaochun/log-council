@@ -19,7 +19,7 @@ INCIDENT = (
     '{"id":"E2","ts":"2026-09-01T10:00:01Z","level":"ERROR",'
     '"service":"frontend","message":"request error"}'
 )
-APP_PATH = Path(__file__).resolve().parents[1] / "src" / "log_council" / "app.py"
+APP_PATH = Path(__file__).resolve().parents[1] / "streamlit_app.py"
 
 
 class UIHelperTests(unittest.TestCase):

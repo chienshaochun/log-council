@@ -15,7 +15,7 @@ LogCouncil 是一個 evidence-first 的多-Agent log 分析工具。它會讓不
 使用 Conda 建立並啟用環境：
 
 ```powershell
-conda env create -f environment.yml
+conda env create -f environment.local.yml
 conda activate log-council
 ```
 
@@ -50,10 +50,12 @@ log-council analyze .\incident.log --output .\report.json
 ## 啟動 Web UI
 
 ```powershell
-streamlit run src/log_council/app.py
+streamlit run streamlit_app.py
 ```
 
 瀏覽器介面可貼上或上傳 log，查看 Overview、Evidence、Agents、Handoffs 與 Data quality，並下載已遮蔽常見秘密的 JSON 報告。分析在本機執行，不需要 API key，也不會執行建議的操作。
+
+部署至 Streamlit Community Cloud 時，請使用根目錄的 `streamlit_app.py` 與 Python 3.12。完整欄位與部署後檢查請參閱 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)。
 
 ## 真實 Log 資料
 
@@ -73,7 +75,7 @@ python scripts/download_dataset.py loghub-openstack-2k
 
 MVP 僅分析 logs；metrics、distributed traces、packet captures 與 alarm-code event sequences 不在產品範圍內。
 
-## 預定 Agent 流程
+## 目前 Agent 流程
 
 ```text
 Pattern Agent ──┐

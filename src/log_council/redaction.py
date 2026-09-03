@@ -31,13 +31,17 @@ SECRET_PATTERNS = (
         r"client[_-]?secret|cookie|set-cookie)[\"']\s*:\s*[\"'])([^\"']+)"
     ),
 )
+EMAIL_PATTERN = re.compile(
+    r"(?i)\b[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?"
+    r"(?:\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)+\b"
+)
 
 
 def redact_text(value: str) -> str:
     redacted = value
     for pattern in SECRET_PATTERNS:
         redacted = pattern.sub(lambda match: f"{match.group(1)}{REDACTED}", redacted)
-    return redacted
+    return EMAIL_PATTERN.sub(REDACTED, redacted)
 
 
 def redact_value(value: Any) -> Any:

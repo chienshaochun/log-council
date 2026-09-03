@@ -307,7 +307,7 @@ def _render_qa_answer(answer: LogAnswer) -> None:
 def _render_local_qa(payload: dict[str, Any]) -> None:
     st.subheader("本機 LLM 問答")
     st.caption(
-        "選用功能：去識別化後的證據會送到本機 Ollama（localhost），"
+        "選用功能：遮蔽常見秘密與 email 後的證據會送到本機 Ollama（localhost），"
         "不使用外部 API，也不會自動執行任何建議。"
     )
     st.info(
@@ -424,7 +424,7 @@ def main() -> None:
         st.divider()
         st.info(
             "分析只在執行 LogCouncil 的環境中完成，不會送往外部 LLM/API。"
-            "若啟用本機 LLM，只有去識別化後的證據會傳給 localhost Ollama。"
+            "若啟用本機 LLM，只有遮蔽常見秘密與 email 後的證據會傳給 localhost Ollama。"
             "若使用 Community Cloud，上傳內容會進入該雲端執行環境。"
             "畫面與下載報告會遮蔽常見秘密；原始輸入不會被修改。"
         )

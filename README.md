@@ -65,9 +65,38 @@ ollama list
 streamlit run app.py
 ```
 
-完成規則式分析後，開啟「本機 AI 問答」分頁並啟用 Ollama。LogCouncil 只會把已去識別化、最多 30 筆的高價值事件送到 `http://localhost:11434`；LLM 選出的直接證據會由程式以原始事件內容呈現，模型產生的可能原因則明確標示為推測。這項功能不需要 Ollama 帳號、外部 API key 或付費額度。
+完成規則式分析後，開啟「本機 AI 問答」分頁並啟用 Ollama。LogCouncil 只會把已遮蔽常見秘密與 email、最多 30 筆的高價值事件送到 `http://localhost:11434`；LLM 選出的直接證據會由程式以遮蔽後的事件內容呈現，模型產生的可能原因則明確標示為推測。這項功能不需要 Ollama 帳號、外部 API key 或付費額度。
 
 本機 Ollama 無法由 Streamlit Community Cloud 連線，因此公開部署仍使用原有規則式分析；使用本機 LLM 問答時，請在安裝 Ollama 的同一部電腦上執行 Streamlit。
+
+#### 本機版與公開版的功能差異
+
+| 執行方式 | 規則式多-Agent 分析 | 本機 AI 問答 |
+| --- | --- | --- |
+| 在安裝 Ollama 的電腦執行 `streamlit run app.py` | 可用 | 可用 |
+| Streamlit Community Cloud 公開網站 | 可用 | **不可用** |
+
+`localhost:11434` 對公開網站而言是 Streamlit 的遠端伺服器，不是使用者的電腦，因此 Community Cloud 無法連線到本機 Ollama。即使將本機 AI 問答程式碼合併至 `main`，也不會讓公開網站取得本機模型能力；若要讓公開網站提供 LLM 問答，仍需要外部模型 API，或另行部署一個可由公開網站連線的模型服務。請勿為了連接公開網站而直接將本機 Ollama 連接埠暴露到網際網路。
+
+#### 本機 AI 問答測試案例
+
+Repository 提供 [`examples/local-llm-qa-demo.log`](examples/local-llm-qa-demo.log)，可直接在本機 Streamlit 使用「上傳檔案」進行測試：
+
+1. 上傳測試 Log 並按下「開始分析」。
+2. 進入「本機 AI 問答」分頁。
+3. 開啟「啟用本機 LLM 問答（Ollama）」。
+4. 依序測試以下問題：
+
+```text
+這起事故發生了什麼？請依時間順序說明。
+哪些事件直接支持資料庫連線池耗盡的推測？
+目前能否確定資料庫伺服器曾經當機？為什麼？
+服務是否已經恢復？請指出證據。
+如果我是值班工程師，接下來最優先檢查哪三件事？
+目前還缺少哪些資料，才能更有把握確認根因？
+```
+
+預期回答應辨識「慢查詢 → 連線池滿載 → 等待連線逾時 → checkout 回傳 503 → 延遲恢復」的時間線，並引用 `EVT-002` 至 `EVT-006`。回答可以將慢查詢造成連線池耗盡列為推測，但不能宣稱資料庫伺服器已當機，也不能捏造部署、CPU、記憶體或重試結果。模型回答仍可能有誤，應以畫面中的「直接證據」為準。
 
 部署至 Streamlit Community Cloud 時，請使用根目錄的 `app.py` 與 Python 3.12。完整欄位與部署後檢查請參閱 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)。
 

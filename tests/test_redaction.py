@@ -13,6 +13,7 @@ class RedactionTests(unittest.TestCase):
             "password: hunter2",
             '"client_secret":"very-secret-value"',
             "Cookie: session=private-value",
+            "user_email=operator@example.com",
         )
 
         for sample in samples:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import unittest
+from pathlib import Path
 from urllib.error import URLError
 
 from log_council.qa import (
@@ -12,6 +13,10 @@ from log_council.qa import (
     OllamaUnavailableError,
     build_evidence_packet,
 )
+from log_council.reporting import build_safe_report
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 class FakeResponse:
@@ -111,6 +116,21 @@ class EvidencePacketTests(unittest.TestCase):
             [event["id"] for event in packet["events"]],
             ["EVT-002", "EVT-003"],
         )
+
+    def test_committed_demo_log_has_expected_analysis_and_safe_packet(self) -> None:
+        text = (PROJECT_ROOT / "examples" / "local-llm-qa-demo.log").read_text(
+            encoding="utf-8"
+        )
+
+        report = build_safe_report(text)
+        packet = build_evidence_packet(report)
+        serialized = json.dumps(packet, ensure_ascii=False)
+
+        self.assertEqual(report["parse"]["stats"]["event_count"], 7)
+        self.assertEqual(report["parse"]["stats"]["coverage"], 1.0)
+        self.assertEqual(report["hypotheses"][0]["title"], "資料庫連線池耗盡（服務：checkout）")
+        self.assertNotIn("demo@example.com", serialized)
+        self.assertIn("[REDACTED]", serialized)
 
 
 class LogAnswerTests(unittest.TestCase):

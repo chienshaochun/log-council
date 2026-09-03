@@ -1,0 +1,7 @@
+{"id":"EVT-001","ts":"2026-09-03T10:00:00+08:00","level":"INFO","service":"frontend","message":"checkout request started path=/checkout trace_id=trace-demo-73 user_email=demo@example.com","trace_id":"trace-demo-73"}
+{"id":"EVT-002","ts":"2026-09-03T10:00:01+08:00","level":"WARN","service":"orders-db","message":"slow query took 4800ms operation=find_cart trace_id=trace-demo-73","trace_id":"trace-demo-73"}
+{"id":"EVT-003","ts":"2026-09-03T10:00:03+08:00","level":"WARN","service":"checkout","message":"database pool at capacity active=20 idle=0 trace_id=trace-demo-73","trace_id":"trace-demo-73"}
+{"id":"EVT-004","ts":"2026-09-03T10:00:06+08:00","level":"ERROR","service":"checkout","message":"timed out waiting for database connection timeout=3000ms trace_id=trace-demo-73","trace_id":"trace-demo-73"}
+{"id":"EVT-005","ts":"2026-09-03T10:00:06+08:00","level":"ERROR","service":"frontend","message":"checkout request failed status=503 trace_id=trace-demo-73","trace_id":"trace-demo-73"}
+{"id":"EVT-006","ts":"2026-09-03T10:05:00+08:00","level":"INFO","service":"checkout","message":"service recovered latency normal pool_active=6 pool_idle=14","trace_id":null}
+{"id":"EVT-007","ts":"2026-09-03T10:05:03+08:00","level":"INFO","service":"frontend","message":"checkout request completed status=200 trace_id=trace-demo-88","trace_id":"trace-demo-88"}

@@ -27,7 +27,7 @@ class OrchestratorTests(unittest.TestCase):
         self.assertEqual(kinds.count("revision_request"), 1)
         self.assertEqual(kinds.count("revision"), 1)
         self.assertEqual(kinds.count("decision"), 1)
-        self.assertEqual(report.agent_messages[-1].subject, "Revision accepted with caveat")
+        self.assertEqual(report.agent_messages[-1].subject, "附帶提醒後接受修訂")
         self.assertEqual(report.hypotheses[0].contradicting[0].event_id, "EVT-105")
 
     def test_every_evidence_reference_resolves_to_source_event(self) -> None:
@@ -81,6 +81,19 @@ class OrchestratorTests(unittest.TestCase):
         self.assertNotIn("revision", kinds)
         self.assertEqual(kinds[-1], "decision")
 
+    def test_numeric_conversion_is_not_mistaken_for_a_deployment_version(self) -> None:
+        events = parse_log_text(
+            '{"id":"E1","level":"ERROR","service":"cartservice",'
+            '"message":"numeric conversion overflow"}\n'
+            '{"id":"E2","level":"ERROR","service":"frontend",'
+            '"message":"request failed"}'
+        )
+
+        report = CouncilOrchestrator().analyze(events)
+
+        self.assertNotIn("challenge", [item.kind for item in report.agent_messages])
+        self.assertNotIn("部署", report.caveat)
+
     def test_correlation_agent_is_auditable_part_of_consensus(self) -> None:
         report = CouncilOrchestrator().analyze(parse_log_text(INCIDENT))
 
@@ -89,7 +102,7 @@ class OrchestratorTests(unittest.TestCase):
         root_finding = next(
             finding for finding in report.findings if finding.agent == "Root Cause Agent"
         )
-        self.assertIn("Consumed 3 validated specialist findings", root_finding.details[0])
+        self.assertIn("3 個已驗證的專業 Agent 發現", root_finding.details[0])
         correlation_messages = [
             message for message in report.agent_messages
             if message.sender == "Correlation Agent"
@@ -112,11 +125,11 @@ class OrchestratorTests(unittest.TestCase):
         report = CouncilOrchestrator().analyze(events)
 
         self.assertLessEqual(report.confidence, 0.45)
-        self.assertEqual(report.evidence_chain, ["Insufficient evidence"])
-        self.assertIn("Collect a wider log window", report.recommended_actions[0])
+        self.assertEqual(report.evidence_chain, ["證據不足"])
+        self.assertIn("收集第一次失敗前後", report.recommended_actions[0])
 
     def test_empty_input_is_rejected(self) -> None:
-        with self.assertRaisesRegex(ValueError, "At least one log event"):
+        with self.assertRaisesRegex(ValueError, "至少需要一筆 log 事件"):
             CouncilOrchestrator().analyze([])
 
 

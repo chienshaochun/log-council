@@ -15,7 +15,7 @@ class RootCauseAgentTests(unittest.TestCase):
 
         finding, _, _ = RootCauseAgent().analyze(events)
 
-        self.assertEqual(finding.title, "Insufficient evidence for a root cause")
+        self.assertEqual(finding.title, "根因證據不足")
         self.assertEqual(finding.evidence, [])
 
     def test_attributes_application_overflow_to_matching_service(self) -> None:
@@ -28,7 +28,7 @@ class RootCauseAgentTests(unittest.TestCase):
 
         finding, hypotheses, _ = RootCauseAgent().analyze(events)
 
-        self.assertIn("Application numeric conversion overflow", finding.title)
+        self.assertIn("應用程式數值轉換溢位", finding.title)
         self.assertIn("cartservice", finding.title)
         self.assertEqual(hypotheses[0].supporting[0].event_id, "E1")
 

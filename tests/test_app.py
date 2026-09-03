@@ -74,12 +74,16 @@ class StreamlitAppTests(unittest.TestCase):
         self.assertEqual(app.error, [])
         self.assertEqual(
             [metric.label for metric in app.metric],
-            ["Log events", "Parse coverage", "Council confidence", "Agent consensus"],
+            ["Log 事件數", "結構化解析率", "分析信心", "Agent 共識"],
         )
         self.assertEqual(
             [tab.label for tab in app.tabs],
-            ["Overview", "Evidence", "Agents", "Handoffs", "Data quality"],
+            ["總覽", "證據", "Agent 分析", "交接紀錄", "資料品質"],
         )
+        self.assertTrue(any(
+            "應用程式數值轉換溢位" in item.value
+            for item in [*app.success, *app.warning]
+        ))
         self.assertGreaterEqual(len(app.dataframe), 5)
         self.assertEqual(len(app.get("download_button")), 1)
         self.assertIn("analysis_payload", app.session_state)

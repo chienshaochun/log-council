@@ -17,7 +17,7 @@ class CorrelationAgentTests(unittest.TestCase):
     def test_builds_bounded_cross_service_links(self) -> None:
         finding, links = CorrelationAgent().analyze(parse_log_text(PROPAGATION))
 
-        self.assertEqual(finding.title, "Cross-service propagation candidate detected")
+        self.assertEqual(finding.title, "偵測到跨服務擴散候選鏈")
         self.assertEqual(finding.evidence[0].event_id, "E1")
         self.assertTrue(any(
             link.relation == "bounded-time-proximity"
@@ -37,7 +37,7 @@ class CorrelationAgentTests(unittest.TestCase):
 
         finding, links = CorrelationAgent().analyze(events)
 
-        self.assertEqual(finding.title, "No reliable event correlation")
+        self.assertEqual(finding.title, "沒有可靠的事件關聯")
         self.assertEqual(finding.confidence, 0.3)
         self.assertEqual(links, [])
 

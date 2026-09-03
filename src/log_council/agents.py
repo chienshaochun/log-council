@@ -17,6 +17,11 @@ def _contains(event: LogEvent, *terms: str) -> bool:
     )
 
 
+def _contains_deployment_signal(event: LogEvent) -> bool:
+    haystack = f"{event.service} {event.message}".lower()
+    return bool(re.search(r"\b(?:deploy(?:ed|ing|ment)?|release(?:d)?|version)\b", haystack))
+
+
 def _ev(event: LogEvent, reason: str, stance: str = "supporting") -> Evidence:
     return Evidence(event.id, reason, stance)  # type: ignore[arg-type]
 
@@ -31,26 +36,26 @@ class PatternAgent:
             re.sub(r"\b\d+(?:\.\d+)?\b", "#", e.message.lower()) for e in failures
         )
         repeated = max(normalized.values(), default=0)
-        evidence = [_ev(e, "Repeated resource-pressure or connection symptom") for e in pool[:4]]
+        evidence = [_ev(e, "重複出現的資源壓力或連線異常") for e in pool[:4]]
         if not evidence:
-            evidence = [_ev(e, "High-severity event") for e in failures[:4]]
+            evidence = [_ev(e, "高嚴重度事件") for e in failures[:4]]
         if pool:
-            title = "Connection pressure pattern detected"
-            summary = f"Found {len(pool)} connection/pool signals and {len(failures)} high-severity events."
+            title = "偵測到連線壓力模式"
+            summary = f"找到 {len(pool)} 個連線／連線池訊號，以及 {len(failures)} 個高嚴重度事件。"
         elif failures:
-            title = "Failure cluster detected"
-            summary = f"Found {len(failures)} high-severity events; the largest normalized pattern repeats {repeated} times."
+            title = "偵測到錯誤群集"
+            summary = f"找到 {len(failures)} 個高嚴重度事件；最大的正規化錯誤模式重複 {repeated} 次。"
         else:
-            title = "No dominant failure pattern"
-            summary = "The sample contains no ERROR/CRITICAL events; conclusions should remain tentative."
+            title = "沒有明顯的主要錯誤模式"
+            summary = "樣本中沒有 ERROR／CRITICAL 事件，因此目前只能做初步判斷。"
         confidence = min(0.96, 0.45 + len(evidence) * 0.11 + min(repeated, 3) * 0.04)
         return AgentFinding(
             agent=self.name, title=title, summary=summary, confidence=confidence,
             evidence=evidence,
             details=[
-                f"High-severity events: {len(failures)}",
-                f"Connection/pool signals: {len(pool)}",
-                f"Largest repeated failure pattern: {repeated}",
+                f"高嚴重度事件：{len(failures)}",
+                f"連線／連線池訊號：{len(pool)}",
+                f"最大重複錯誤模式次數：{repeated}",
             ],
         )
 
@@ -65,14 +70,14 @@ class TimelineAgent:
         timeout = next((e for e in ordered if _contains(e, "timeout", "timed out", "504")), None)
         recovery = next((e for e in ordered if _contains(e, "recovered", "returned to baseline", "latency normal")), None)
         milestones = [item for item in (slow, pressure, timeout, recovery) if item]
-        evidence = [_ev(event, "Chronological milestone") for event in milestones]
+        evidence = [_ev(event, "時間序列中的關鍵事件") for event in milestones]
         if len(milestones) >= 3:
-            title = "Ordered degradation chain established"
-            summary = "A precursor, resource-pressure symptom, downstream failure, and/or recovery appear in causal order."
+            title = "已建立有順序的劣化鏈"
+            summary = "前兆、資源壓力、下游失敗及／或恢復事件依可能的因果順序出現。"
             confidence = 0.87 if recovery else 0.79
         else:
-            title = "Timeline is incomplete"
-            summary = "Too few distinct milestones are present to establish a strong causal sequence."
+            title = "時間線不完整"
+            summary = "可辨識的關鍵事件太少，尚不足以建立可靠的因果順序。"
             confidence = 0.48 + len(milestones) * 0.08
         return AgentFinding(
             agent=self.name, title=title, summary=summary, confidence=min(confidence, 0.9),
@@ -199,7 +204,7 @@ class CorrelationAgent:
                 source_event_id=source.id,
                 target_event_id=target.id,
                 relation=f"shared-{kind}",
-                basis=f"Both events contain the same {kind} value ({value}).",
+                basis=f"兩個事件具有相同的 {kind} 值（{value}）。",
                 delta_seconds=_delta_seconds(source, target),
             ))
             if len(links) == 3:
@@ -212,10 +217,10 @@ class CorrelationAgent:
         if not signals:
             return AgentFinding(
                 agent=self.name,
-                title="No reliable event correlation",
-                summary="No severity or message signal was found from which to build a correlation chain.",
+                title="沒有可靠的事件關聯",
+                summary="未找到足以建立關聯鏈的嚴重度或訊息訊號。",
                 confidence=0.3,
-                details=["No cross-service causal order is claimed."],
+                details=["目前不主張存在跨服務的因果順序。"],
             ), []
 
         onset, repeated_count, distractor = self._onset(signals)
@@ -230,7 +235,7 @@ class CorrelationAgent:
                 onset.id,
                 target.id,
                 "repeated-signature",
-                "The normalized message signature repeats in the same service.",
+                "正規化後的訊息特徵在同一服務中重複出現。",
                 _delta_seconds(onset, target),
             ))
 
@@ -248,7 +253,7 @@ class CorrelationAgent:
                 onset.id,
                 event.id,
                 "bounded-time-proximity",
-                f"A signal in another service follows within {self.proximity_seconds} seconds.",
+                f"另一個服務在 {self.proximity_seconds} 秒的關聯視窗內出現訊號。",
                 delta,
             ))
             if len(downstream_services) == 3:
@@ -263,15 +268,15 @@ class CorrelationAgent:
                 links.append(link)
                 existing.add(key)
 
-        evidence = [_ev(onset, "Candidate onset of the dominant new failure signature")]
+        evidence = [_ev(onset, "主要新錯誤特徵的起始候選事件")]
         by_id = {event.id: event for event in events}
         for link in links[:5]:
             target = by_id[link.target_event_id]
-            evidence.append(_ev(target, f"Correlated by {link.relation}"))
+            evidence.append(_ev(target, f"透過 {link.relation} 建立關聯"))
         if distractor is not None:
             evidence.append(_ev(
                 distractor,
-                "Pre-existing signal excluded from the new post-injection signature",
+                "既有訊號與注入後的新錯誤特徵不同，因此保留為背景資訊",
                 "context",
             ))
 
@@ -282,16 +287,14 @@ class CorrelationAgent:
         })
         shared_identifier_count = sum(link.relation.startswith("shared-") for link in links)
         if cross_service_count:
-            title = "Cross-service propagation candidate detected"
+            title = "偵測到跨服務擴散候選鏈"
             summary = (
-                f"The onset candidate is {onset.service}; signals in {cross_service_count} "
-                "other service(s) follow within the bounded correlation window."
+                f"起始候選服務為 {onset.service}；另有 {cross_service_count} 個服務在限定的關聯視窗內接續出現訊號。"
             )
         else:
-            title = "Service-local failure cluster detected"
+            title = "偵測到單一服務內的錯誤群集"
             summary = (
-                f"The dominant onset candidate is confined to {onset.service}; "
-                "cross-service propagation is not established."
+                f"主要起始候選事件集中在 {onset.service}；目前尚未建立跨服務擴散關係。"
             )
         confidence = min(
             0.92,
@@ -301,14 +304,14 @@ class CorrelationAgent:
             + (0.12 if shared_identifier_count else 0),
         )
         details = [
-            f"Onset candidate: {onset.timestamp_text} | {onset.service} | {onset.id}",
-            f"Dominant normalized signature occurrences: {repeated_count}",
-            f"Cross-service targets in window: {cross_service_count}",
-            f"Shared identifier links: {shared_identifier_count}",
+            f"起始候選事件：{onset.timestamp_text} | {onset.service} | {onset.id}",
+            f"主要正規化特徵出現次數：{repeated_count}",
+            f"關聯視窗內的跨服務目標數：{cross_service_count}",
+            f"共用識別碼關聯數：{shared_identifier_count}",
         ]
         if distractor is not None:
             details.append(
-                f"Earlier unrelated candidate retained as context: {distractor.id} ({distractor.service})"
+                f"保留為背景資訊的較早無關候選事件：{distractor.id}（{distractor.service}）"
             )
         return AgentFinding(
             agent=self.name,
@@ -331,48 +334,48 @@ class CauseRule:
 
 CAUSE_RULES = (
     CauseRule(
-        "Database connection pool exhaustion",
-        "Database work held connections long enough to exhaust the application pool, queue requests, and trigger upstream timeouts.",
+        "資料庫連線池耗盡",
+        "資料庫操作長時間占用連線，導致應用程式連線池耗盡、請求排隊，並觸發上游逾時。",
         ("slow query", "pool at capacity", "pool exhausted", "timed out waiting for database", "connection limit"),
-        ("Inspect the slowest database queries and their query plans.", "Alert on pool wait time and pool utilization.", "Apply a bounded query/index fix before increasing pool size."),
-        ("Slow database operation", "Connection pool saturation", "Request queueing", "Upstream timeout"),
+        ("檢查最慢的資料庫查詢及其執行計畫。", "針對連線池等待時間與使用率設定告警。", "先進行範圍明確的查詢／索引修正，再考慮增加連線池大小。"),
+        ("資料庫操作變慢", "連線池飽和", "請求開始排隊", "上游請求逾時"),
     ),
     CauseRule(
-        "Application numeric conversion overflow",
-        "An application value exceeded its expected numeric range and caused the storage operation to fail.",
+        "應用程式數值轉換溢位",
+        "應用程式中的數值超出預期範圍，導致儲存操作失敗。",
         ("overflowexception", "value was either too large or too small", "int32", "overflow"),
         (
-            "Inspect the cited stack frame and the value being converted at the failure boundary.",
-            "Validate numeric types and range checks between the request model and storage layer.",
-            "Add boundary-value tests before deploying a bounded application fix.",
+            "檢查引用事件中的堆疊位置，以及失敗邊界正在轉換的數值。",
+            "確認請求模型與儲存層之間的數值型別和範圍檢查。",
+            "部署範圍明確的修正前，先加入邊界值測試。",
         ),
         (
-            "Out-of-range application value",
-            "Numeric conversion overflow",
-            "Storage operation failure",
-            "Frontend request error",
+            "應用程式數值超出範圍",
+            "數值轉換發生溢位",
+            "儲存操作失敗",
+            "前端請求失敗",
         ),
     ),
     CauseRule(
-        "Memory exhaustion or process pressure",
-        "Memory pressure caused allocation failures, process termination, or repeated restarts.",
+        "記憶體耗盡或程序資源壓力",
+        "記憶體壓力造成配置失敗、程序終止或反覆重新啟動。",
         ("out of memory", "oom", "killed process", "heap", "memory limit"),
-        ("Capture memory profiles around the incident window.", "Review container limits and restart counts.", "Add memory saturation alerts."),
-        ("Memory growth", "Resource limit reached", "Process disruption", "Request failures"),
+        ("擷取事故時間窗前後的記憶體剖析資料。", "檢查容器資源限制與重新啟動次數。", "新增記憶體飽和告警。"),
+        ("記憶體持續成長", "達到資源上限", "程序中斷", "請求失敗"),
     ),
     CauseRule(
-        "Network or upstream dependency failure",
-        "Connectivity or upstream response failures propagated into request timeouts.",
+        "網路或上游相依服務故障",
+        "連線或上游回應失敗進一步擴散，最終造成請求逾時。",
         ("connection refused", "dns", "network unreachable", "upstream timeout", "tls handshake"),
-        ("Check dependency health and network telemetry.", "Correlate failures by trace ID.", "Validate timeout and retry budgets."),
-        ("Dependency degradation", "Connection failures", "Retry/queue pressure", "Request timeout"),
+        ("檢查相依服務健康狀態與網路遙測資料。", "使用 trace ID 關聯錯誤事件。", "確認逾時與重試預算是否合理。"),
+        ("相依服務劣化", "連線失敗", "重試／佇列壓力", "請求逾時"),
     ),
     CauseRule(
-        "Authentication or credential failure",
-        "Rejected or expired credentials prevented normal service-to-service access.",
+        "身分驗證或憑證失敗",
+        "憑證遭拒絕或已過期，導致服務之間無法正常存取。",
         ("unauthorized", "forbidden", "token expired", "invalid credential", "401", "403"),
-        ("Validate credential rotation and expiry timestamps.", "Audit authorization policy changes.", "Add expiry-window alerts."),
-        ("Credential or policy change", "Authorization rejected", "Dependency unavailable", "Request failure"),
+        ("確認憑證輪替與到期時間。", "稽核授權政策異動。", "新增憑證到期視窗告警。"),
+        ("憑證或政策變更", "授權遭拒絕", "相依服務無法存取", "請求失敗"),
     ),
 )
 
@@ -406,37 +409,35 @@ class RootCauseAgent:
             confidence = min(0.92, 0.28 + score * 0.07)
             service = Counter(event.service for event in matched).most_common(1)
             hypothesis_title = (
-                f"{rule.title} in {service[0][0]}" if service else rule.title
+                f"{rule.title}（服務：{service[0][0]}）" if service else rule.title
             )
             hypothesis_explanation = (
-                f"{rule.explanation} The strongest matching evidence is in "
-                f"{service[0][0]}."
+                f"{rule.explanation} 最強的匹配證據來自 {service[0][0]}。"
                 if service else rule.explanation
             )
             hypotheses.append(Hypothesis(
                 title=hypothesis_title,
                 explanation=hypothesis_explanation,
                 confidence=confidence,
-                supporting=[_ev(event, f"Matches {rule.title.lower()}") for event in matched[:5]],
+                supporting=[_ev(event, f"符合「{rule.title}」模式") for event in matched[:5]],
             ))
         best_score, best, matched = scored[0]
         leading_service = Counter(event.service for event in matched).most_common(1)
         leading_title = (
-            f"{best.title} in {leading_service[0][0]}"
+            f"{best.title}（服務：{leading_service[0][0]}）"
             if best_score and leading_service else best.title
         )
         leading_summary = hypotheses[0].explanation
         finding = AgentFinding(
             agent=self.name,
-            title=leading_title if best_score else "Insufficient evidence for a root cause",
-            summary=leading_summary if best_score else "No known cause pattern has enough evidence.",
+            title=leading_title if best_score else "根因證據不足",
+            summary=leading_summary if best_score else "目前沒有任何已知原因模式具備足夠證據。",
             confidence=hypotheses[0].confidence if best_score else 0.25,
-            evidence=[_ev(event, "Supports leading root-cause hypothesis") for event in matched[:5]],
+            evidence=[_ev(event, "支持主要根因假設") for event in matched[:5]],
             details=[
-                f"Consumed {len(specialist_findings)} validated specialist findings "
-                f"and {len(correlations)} correlation links.",
-                f"Compared {len(CAUSE_RULES)} competing cause families.",
-                f"Leading rule score: {best_score}.",
+                f"使用了 {len(specialist_findings)} 個已驗證的專業 Agent 發現，以及 {len(correlations)} 條事件關聯。",
+                f"已比較 {len(CAUSE_RULES)} 類可能原因。",
+                f"主要規則分數：{best_score}。",
             ],
         )
         return finding, hypotheses, best
@@ -457,7 +458,7 @@ class RootCauseAgent:
         revised_leading = Hypothesis(
             title=leading.title,
             explanation=(
-                f"{leading.explanation} Reviewer caveat: competing triggers remain unproven."
+                f"{leading.explanation} Reviewer 提醒：其他可能觸發因素仍未獲得證實。"
                 if new_contradictions else leading.explanation
             ),
             confidence=max(0.2, leading.confidence - 0.06 * len(new_contradictions)),
@@ -467,14 +468,14 @@ class RootCauseAgent:
         revised = [revised_leading, *hypotheses[1:]]
         finding = AgentFinding(
             agent=self.name,
-            title=f"Revised: {revised_leading.title}",
+            title=f"修訂後：{revised_leading.title}",
             summary=revised_leading.explanation,
             confidence=revised_leading.confidence,
             evidence=[*revised_leading.supporting, *revised_leading.contradicting],
             details=[
                 *(prior_finding.details if prior_finding else []),
-                f"Accepted {len(new_contradictions)} reviewer contradiction(s).",
-                "No new evidence was introduced during revision.",
+                f"已納入 {len(new_contradictions)} 個 Reviewer 提出的反證。",
+                "修訂過程沒有加入新的來源證據。",
             ],
         )
         return finding, revised
@@ -485,31 +486,31 @@ class ReviewerAgent:
 
     def analyze(self, events: list[LogEvent], hypotheses: list[Hypothesis]) -> AgentFinding:
         leading = hypotheses[0]
-        deployments = [e for e in events if _contains(e, "deploy", "release", "version")]
+        deployments = [e for e in events if _contains_deployment_signal(e)]
         recovery = [e for e in events if _contains(e, "recovered", "returned to baseline", "latency normal")]
         healthy = [e for e in events if e.level == "INFO" and _contains(e, "completed", "healthy", "baseline")]
         evidence: list[Evidence] = []
         details: list[str] = []
         if deployments:
             event = deployments[0]
-            evidence.append(_ev(event, "Challenged the leading cause with deployment timing", "contradicting"))
-            details.append("Competing hypothesis: a recent deployment may have contributed.")
+            evidence.append(_ev(event, "以部署時間挑戰主要原因", "contradicting"))
+            details.append("競爭假設：近期部署可能也是影響因素。")
         if recovery:
-            evidence.append(_ev(recovery[0], "Recovery correlation supports the proposed causal chain"))
-            details.append("Recovery timing is consistent with the leading hypothesis.")
+            evidence.append(_ev(recovery[0], "恢復時間的關聯支持所提出的因果鏈"))
+            details.append("恢復時間與主要假設一致。")
         if healthy:
-            evidence.append(_ev(healthy[0], "Healthy peer activity limits the incident scope", "context"))
+            evidence.append(_ev(healthy[0], "其他服務的正常活動限制了事故影響範圍", "context"))
         confidence = max(0.35, min(0.9, leading.confidence - (0.06 if deployments else 0) + (0.06 if recovery else 0)))
         return AgentFinding(
             agent=self.name,
-            title="Leading hypothesis survives review" if confidence >= 0.6 else "Evidence remains inconclusive",
+            title="主要假設通過審查" if confidence >= 0.6 else "證據仍不足以下結論",
             summary=(
-                "The causal chain is supported, but deployment contribution is not proven."
-                if deployments else "No stronger competing hypothesis was found in the supplied logs."
+                "因果鏈獲得證據支持，但部署是否造成影響仍未證實。"
+                if deployments else "提供的 log 中沒有找到更強的競爭假設。"
             ),
             confidence=confidence,
             evidence=evidence,
-            details=details or ["Checked for competing triggers, recovery correlation, and healthy peer signals."],
+            details=details or ["已檢查其他可能觸發因素、恢復時間關聯與正常服務訊號。"],
         )
 
     def finalize(self, hypotheses: list[Hypothesis], prior_review: AgentFinding) -> AgentFinding:
@@ -518,15 +519,15 @@ class ReviewerAgent:
         acknowledged = bool(contradictions)
         return AgentFinding(
             agent=self.name,
-            title="Revision accepted with caveat" if acknowledged else "Leading hypothesis accepted",
+            title="附帶提醒後接受修訂" if acknowledged else "接受主要假設",
             summary=(
-                "The leading hypothesis is evidence-bound and preserves the competing-trigger caveat."
-                if acknowledged else "The leading hypothesis is evidence-bound and no stronger alternative was found."
+                "主要假設受到證據約束，並保留其他可能觸發因素的提醒。"
+                if acknowledged else "主要假設受到證據約束，且未找到更強的替代解釋。"
             ),
             confidence=max(0.35, min(0.9, leading.confidence + 0.03)),
             evidence=[*leading.supporting, *contradictions],
             details=[
-                "Checked that the revision cites only registered source events.",
+                "已確認修訂內容只引用登錄過的來源事件。",
                 *prior_review.details,
             ],
         )

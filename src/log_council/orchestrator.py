@@ -40,23 +40,23 @@ class CouncilOrchestrator:
 
     def analyze(self, events: list[LogEvent]) -> AnalysisReport:
         if not events:
-            raise ValueError("At least one log event is required")
+            raise ValueError("至少需要一筆 log 事件")
 
         run_id = _run_id(events)
         registry = EvidenceRegistry(events)
         ledger = HandoffLedger(run_id, registry)
 
         pattern_task = ledger.add(
-            "Coordinator", "Pattern Agent", "task", "Find abnormal log patterns",
-            "Detect repeated templates, severity clusters, retries, and resource-pressure signals.",
+            "Coordinator", "Pattern Agent", "task", "尋找異常 log 模式",
+            "偵測重複模板、嚴重度群集、重試與資源壓力訊號。",
         )
         timeline_task = ledger.add(
-            "Coordinator", "Timeline Agent", "task", "Reconstruct the incident timeline",
-            "Find the earliest precursor, propagation symptoms, failure point, and recovery evidence.",
+            "Coordinator", "Timeline Agent", "task", "重建事故時間線",
+            "尋找最早前兆、擴散症狀、失敗點與恢復證據。",
         )
         correlation_task = ledger.add(
-            "Coordinator", "Correlation Agent", "task", "Correlate related events",
-            "Connect signals by service, identifiers, and bounded time proximity while retaining distractors.",
+            "Coordinator", "Correlation Agent", "task", "關聯相關事件",
+            "依服務、識別碼與限定的時間鄰近性連結訊號，同時保留可能的干擾事件。",
         )
 
         # Specialists run concurrently, while ledger insertion stays deterministic.
@@ -92,8 +92,8 @@ class CouncilOrchestrator:
             *correlation.evidence,
         ])
         cause_task = ledger.add(
-            "Coordinator", "Root Cause Agent", "task", "Compare root-cause hypotheses",
-            "Use the specialist findings to rank explanations without exceeding the supplied logs.",
+            "Coordinator", "Root Cause Agent", "task", "比較根因假設",
+            "使用各專業 Agent 的發現排序解釋，且不得超出提供的 log 證據。",
             evidence_ids=specialist_evidence,
             payload_refs=(
                 pattern_message.message_id,
@@ -115,8 +115,8 @@ class CouncilOrchestrator:
         )
 
         review_task = ledger.add(
-            "Coordinator", "Reviewer Agent", "review_request", "Challenge the leading hypothesis",
-            "Check unsupported claims, competing triggers, counter-evidence, and missing coverage.",
+            "Coordinator", "Reviewer Agent", "review_request", "挑戰主要假設",
+            "檢查缺乏支持的主張、競爭觸發因素、反證與缺少的資料範圍。",
             evidence_ids=_evidence_ids(root_finding.evidence),
             payload_refs=(cause_message.message_id,),
         )
@@ -137,8 +137,8 @@ class CouncilOrchestrator:
             revision_count = 1
             revision_task = ledger.add(
                 "Coordinator", "Root Cause Agent", "revision_request",
-                "Address reviewer counter-evidence",
-                "Revise the leading hypothesis once; preserve the contradiction and add no uncited facts.",
+                "處理 Reviewer 提出的反證",
+                "修訂主要假設一次；保留矛盾證據，且不可加入沒有引用來源的事實。",
                 evidence_ids=_evidence_ids(initial_review.evidence),
                 payload_refs=(cause_message.message_id, review_message.message_id),
             )
@@ -155,8 +155,8 @@ class CouncilOrchestrator:
                 in_reply_to=revision_task.message_id,
             )
             final_review_task = ledger.add(
-                "Coordinator", "Reviewer Agent", "review_request", "Verify the bounded revision",
-                "Approve only if contradictions remain visible and every claim is evidence-bound.",
+                "Coordinator", "Reviewer Agent", "review_request", "驗證範圍受限的修訂",
+                "只有在矛盾證據仍清楚可見，且每項主張都有證據約束時才能接受。",
                 evidence_ids=_evidence_ids(final_root.evidence),
                 payload_refs=(revision_message.message_id,),
             )
@@ -176,38 +176,38 @@ class CouncilOrchestrator:
             final_review,
         ]
         handoffs = [
-            Handoff("Pattern Agent", "Root Cause Agent", "Which failure pattern best explains the incident?", "Repeated symptoms need a causal explanation."),
-            Handoff("Timeline Agent", "Root Cause Agent", "Did the suspected trigger precede downstream failures?", "Sequence is required before claiming causality."),
-            Handoff("Correlation Agent", "Root Cause Agent", "Which signals form an evidence-bound service propagation chain?", "Time proximity alone must not be presented as confirmed causality."),
-            Handoff("Root Cause Agent", "Reviewer Agent", "Can a competing hypothesis explain the same evidence?", "The leading cause needs adversarial review."),
+            Handoff("Pattern Agent", "Root Cause Agent", "哪一種錯誤模式最能解釋這次事故？", "重複症狀需要因果解釋。"),
+            Handoff("Timeline Agent", "Root Cause Agent", "疑似觸發因素是否早於下游失敗？", "必須先確認事件順序，才能主張因果關係。"),
+            Handoff("Correlation Agent", "Root Cause Agent", "哪些訊號構成受證據約束的服務擴散鏈？", "不能只憑時間接近就宣稱已確認因果關係。"),
+            Handoff("Root Cause Agent", "Reviewer Agent", "競爭假設能否解釋相同證據？", "主要原因需要接受反向審查。"),
         ]
         if has_challenge:
             handoffs.append(Handoff(
-                "Reviewer Agent", "Root Cause Agent", "Address the strongest contradiction before consensus.",
-                "A competing trigger weakens the initial claim.",
+                "Reviewer Agent", "Root Cause Agent", "形成共識前先處理最強的矛盾證據。",
+                "競爭觸發因素會削弱最初的主張。",
             ))
         activities = [
-            Activity(1, pattern.agent, "Pattern scan", pattern.summary),
-            Activity(1, timeline.agent, "Timeline reconstruction", timeline.summary),
-            Activity(1, correlation.agent, "Event correlation", correlation.summary),
-            Activity(2, "Coordinator", "Specialist findings validated", "Pattern, Timeline, and Correlation evidence was checked against the source-event registry."),
-            Activity(3, root_finding.agent, "Hypothesis comparison", root_finding.summary),
-            Activity(4, initial_review.agent, "Adversarial review", initial_review.summary),
+            Activity(1, pattern.agent, "模式掃描", pattern.summary),
+            Activity(1, timeline.agent, "時間線重建", timeline.summary),
+            Activity(1, correlation.agent, "事件關聯", correlation.summary),
+            Activity(2, "Coordinator", "已驗證專業 Agent 發現", "已使用來源事件登錄表檢查 Pattern、Timeline 與 Correlation 的證據。"),
+            Activity(3, root_finding.agent, "假設比較", root_finding.summary),
+            Activity(4, initial_review.agent, "反向審查", initial_review.summary),
         ]
         if has_challenge:
-            activities.append(Activity(5, final_root.agent, "Bounded revision", final_root.summary))
-            activities.append(Activity(6, final_review.agent, "Revision decision", final_review.summary))
+            activities.append(Activity(5, final_root.agent, "範圍受限的修訂", final_root.summary))
+            activities.append(Activity(6, final_review.agent, "修訂決策", final_review.summary))
         activities.append(Activity(
             7 if has_challenge else 5,
-            "Coordinator", "Consensus formed",
-            f"Validated {len(ledger.messages)} messages with {revision_count} revision round(s).",
+            "Coordinator", "形成共識",
+            f"已驗證 {len(ledger.messages)} 則訊息，並完成 {revision_count} 輪修訂。",
         ))
 
         confidence = round(sum(item.confidence for item in findings) / len(findings), 3)
         if not final_root.evidence:
             confidence = min(confidence, 0.45)
         consensus_count = sum(item.confidence >= 0.55 for item in findings)
-        caveat = initial_review.summary if has_challenge else "No material competing trigger was found in the supplied logs."
+        caveat = initial_review.summary if has_challenge else "提供的 log 中沒有發現具實質影響的競爭觸發因素。"
         return AnalysisReport(
             events=events,
             findings=findings,
@@ -219,11 +219,11 @@ class CouncilOrchestrator:
             consensus_count=consensus_count,
             agent_count=len(findings),
             caveat=caveat,
-            evidence_chain=list(rule.chain) if final_root.evidence else ["Insufficient evidence"],
+            evidence_chain=list(rule.chain) if final_root.evidence else ["證據不足"],
             recommended_actions=list(rule.actions) if final_root.evidence else [
-                "Collect a wider log window around the first failure.",
-                "Include logs from the affected service and its direct dependencies.",
-                "Preserve request IDs, trace IDs, service names, and original timestamps.",
+                "收集第一次失敗前後更完整的 log 時間窗。",
+                "加入受影響服務及其直接相依服務的 log。",
+                "保留 request ID、trace ID、服務名稱與原始時間戳記。",
             ],
             correlations=correlations,
             run_id=run_id,

@@ -13,7 +13,7 @@ INCIDENT = (
     '{"id":"E2","ts":"2026-09-01T10:00:01Z","level":"ERROR",'
     '"service":"frontend","message":"request error"}'
 )
-EXPECTED_TABS = ["Overview", "Evidence", "Agents", "Handoffs", "Data quality"]
+EXPECTED_TABS = ["總覽", "證據", "Agent 分析", "交接紀錄", "資料品質"]
 
 
 def _fail_on_render_error(app: AppTest) -> None:

@@ -40,8 +40,8 @@ class CLITests(unittest.TestCase):
 
         self.assertEqual(code, 0)
         self.assertEqual(stderr, "")
-        self.assertIn("Leading hypothesis: Application numeric conversion overflow", stdout)
-        self.assertIn("Recommended next actions:", stdout)
+        self.assertIn("主要假設：應用程式數值轉換溢位", stdout)
+        self.assertIn("建議的下一步：", stdout)
         self.assertNotIn("private-value", stdout)
 
     def test_json_is_redacted_and_deterministic(self) -> None:
@@ -80,7 +80,7 @@ class CLITests(unittest.TestCase):
 
             self.assertEqual(output.read_text(encoding="utf-8"), "keep me")
         self.assertEqual(code, 1)
-        self.assertIn("Output already exists", stderr)
+        self.assertIn("輸出檔案已存在", stderr)
 
     def test_never_replaces_the_input_log(self) -> None:
         with tempfile.TemporaryDirectory() as directory_name:
@@ -93,7 +93,7 @@ class CLITests(unittest.TestCase):
 
             self.assertEqual(source.read_text(encoding="utf-8"), INCIDENT)
         self.assertEqual(code, 1)
-        self.assertIn("must not be the input", stderr)
+        self.assertIn("輸出路徑不可與輸入 log 路徑相同", stderr)
 
     def test_requires_json_output_extension(self) -> None:
         with tempfile.TemporaryDirectory() as directory_name:
@@ -104,7 +104,7 @@ class CLITests(unittest.TestCase):
             code, _, stderr = self._run(["analyze", str(source), "-o", str(output)])
 
         self.assertEqual(code, 1)
-        self.assertIn("must use a .json extension", stderr)
+        self.assertIn("必須使用 .json 副檔名", stderr)
 
     def test_accepts_stdin_and_can_omit_events(self) -> None:
         code, stdout, stderr = self._run(
@@ -121,8 +121,8 @@ class CLITests(unittest.TestCase):
         unsupported_code, _, unsupported_error = self._run(["analyze", "incident.csv"])
 
         self.assertEqual((empty_code, unsupported_code), (1, 1))
-        self.assertIn("no non-empty log events", empty_error)
-        self.assertIn("Unsupported input extension", unsupported_error)
+        self.assertIn("沒有非空白的 log 事件", empty_error)
+        self.assertIn("不支援的輸入副檔名", unsupported_error)
 
 
 if __name__ == "__main__":

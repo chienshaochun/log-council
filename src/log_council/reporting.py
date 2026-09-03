@@ -13,7 +13,7 @@ def build_safe_report(text: str, include_events: bool = True) -> dict[str, Any]:
     """Analyze log text and return a redacted, replay-stable report payload."""
     parsed = parse_log_document(text)
     if not parsed.events:
-        raise ValueError("Input contains no non-empty log events")
+        raise ValueError("輸入內容中沒有非空白的 log 事件")
     report = CouncilOrchestrator().analyze(list(parsed.events))
     payload = report.to_dict(
         include_events=include_events,

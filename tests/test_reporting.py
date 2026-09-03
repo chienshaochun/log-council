@@ -21,7 +21,7 @@ class ReportingTests(unittest.TestCase):
         self.assertNotIn("generated_at", first)
 
     def test_empty_log_is_rejected(self) -> None:
-        with self.assertRaisesRegex(ValueError, "no non-empty log events"):
+        with self.assertRaisesRegex(ValueError, "沒有非空白的 log 事件"):
             build_safe_report("\n")
 
 

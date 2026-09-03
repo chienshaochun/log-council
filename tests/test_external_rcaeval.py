@@ -109,7 +109,7 @@ class OfficialRCAEvalCaseTests(unittest.TestCase):
         report = CouncilOrchestrator().analyze(list(self.case.analysis.events))
         leading = report.hypotheses[0]
 
-        self.assertIn("numeric conversion overflow", leading.title.lower())
+        self.assertIn("數值轉換溢位", leading.title)
         self.assertIn(self.case.ground_truth.root_cause_service, leading.title)
         self.assertIn(self.case.ground_truth.root_cause_service, report.root_cause)
         by_id = {event.id: event for event in self.case.analysis.events}

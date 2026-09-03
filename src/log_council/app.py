@@ -17,6 +17,98 @@ AGENTS = (
     ("Reviewer Agent", "尋找反證、替代解釋與缺少的資料"),
 )
 
+AGENT_LABELS = {
+    "Pattern Agent": "模式 Agent",
+    "Timeline Agent": "時間線 Agent",
+    "Correlation Agent": "關聯 Agent",
+    "Root Cause Agent": "根因 Agent",
+    "Reviewer Agent": "審查 Agent",
+    "Coordinator": "協調器",
+}
+
+COLUMN_LABELS = {
+    "id": "事件 ID",
+    "timestamp": "時間",
+    "level": "等級",
+    "service": "服務",
+    "message": "訊息",
+    "event_id": "事件 ID",
+    "reason": "證據理由",
+    "stance": "證據立場",
+    "source_event_id": "來源事件 ID",
+    "target_event_id": "目標事件 ID",
+    "relation": "關聯類型",
+    "basis": "關聯依據",
+    "delta_seconds": "時間差（秒）",
+    "message_id": "訊息 ID",
+    "run_id": "分析 ID",
+    "sequence": "順序",
+    "sender": "發送者",
+    "recipient": "接收者",
+    "kind": "訊息類型",
+    "subject": "主旨",
+    "body": "內容",
+    "evidence_ids": "證據事件 ID",
+    "payload_refs": "引用訊息",
+    "in_reply_to": "回覆訊息 ID",
+    "step": "步驟",
+    "agent": "Agent",
+    "action": "動作",
+    "detail": "內容",
+    "status": "狀態",
+    "source": "來源 Agent",
+    "target": "目標 Agent",
+    "question": "問題",
+    "input_lines": "輸入行數",
+    "event_count": "事件數",
+    "structured_count": "結構化事件數",
+    "fallback_count": "非結構化保留數",
+    "invalid_timestamp_count": "無效時間戳記數",
+    "duplicate_id_count": "重複事件 ID 數",
+    "coverage": "結構化解析率",
+    "line_number": "行號",
+    "code": "問題代碼",
+    "raw": "原始內容",
+}
+
+VALUE_LABELS = {
+    "supporting": "支持",
+    "contradicting": "反證",
+    "context": "背景資訊",
+    "completed": "已完成",
+    "task": "任務",
+    "finding": "分析發現",
+    "hypothesis": "假設",
+    "review_request": "審查請求",
+    "challenge": "質疑",
+    "revision_request": "修訂請求",
+    "revision": "修訂",
+    "decision": "決策",
+    "repeated-signature": "重複訊息特徵",
+    "bounded-time-proximity": "限定時間鄰近",
+}
+
+
+def _display_value(value: Any) -> Any:
+    if isinstance(value, str):
+        if value in AGENT_LABELS:
+            return AGENT_LABELS[value]
+        if value in VALUE_LABELS:
+            return VALUE_LABELS[value]
+        if value.startswith("shared-"):
+            return f"共用識別碼：{value.removeprefix('shared-')}"
+    return value
+
+
+def localized_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            COLUMN_LABELS.get(key, key): _display_value(value)
+            for key, value in row.items()
+        }
+        for row in rows
+    ]
+
 
 def decode_upload(data: bytes) -> str:
     if len(data) > MAX_UPLOAD_BYTES:
@@ -54,23 +146,23 @@ def _render_overview(payload: dict[str, Any]) -> None:
     summary = payload["summary"]
     stats = payload["parse"]["stats"]
     columns = st.columns(4)
-    columns[0].metric("Log events", f"{stats['event_count']:,}")
-    columns[1].metric("Parse coverage", f"{stats['coverage']:.1%}")
-    columns[2].metric("Council confidence", f"{summary['confidence']:.0%}")
-    columns[3].metric("Agent consensus", summary["consensus"])
+    columns[0].metric("Log 事件數", f"{stats['event_count']:,}")
+    columns[1].metric("結構化解析率", f"{stats['coverage']:.1%}")
+    columns[2].metric("分析信心", f"{summary['confidence']:.0%}")
+    columns[3].metric("Agent 共識", summary["consensus"])
 
     st.subheader("分析結論")
     leading = payload["hypotheses"][0]
     if summary["consensus_label"] == "high confidence":
-        st.success(f"Leading hypothesis · {leading['title']}")
+        st.success(f"主要假設 · {leading['title']}")
     elif summary["consensus_label"] == "moderate confidence":
-        st.warning(f"Leading hypothesis · {leading['title']}")
+        st.warning(f"主要假設 · {leading['title']}")
     else:
         st.info(f"目前證據不足 · {leading['title']}")
     st.write(summary["root_cause"])
-    st.caption(f"Reviewer caveat: {summary['caveat']}")
+    st.caption(f"Reviewer 提醒：{summary['caveat']}")
 
-    st.subheader("Evidence chain")
+    st.subheader("證據鏈")
     st.write(" → ".join(payload["evidence_chain"]))
 
     st.subheader("建議的下一步")
@@ -79,14 +171,14 @@ def _render_overview(payload: dict[str, Any]) -> None:
 
 
 def _render_evidence(payload: dict[str, Any]) -> None:
-    st.subheader("Correlation links")
+    st.subheader("事件關聯")
     correlations = payload.get("correlations", [])
     if correlations:
-        st.dataframe(correlations, width="stretch", hide_index=True)
+        st.dataframe(localized_rows(correlations), width="stretch", hide_index=True)
     else:
-        st.info("目前沒有足夠資料建立 event-to-event correlation link。")
+        st.info("目前沒有足夠資料建立事件之間的關聯。")
 
-    st.subheader("Ranked hypotheses")
+    st.subheader("根因假設排序")
     for index, hypothesis in enumerate(payload["hypotheses"], start=1):
         with st.expander(
             f"{index}. {hypothesis['title']} · {hypothesis['confidence']:.0%}",
@@ -96,11 +188,11 @@ def _render_evidence(payload: dict[str, Any]) -> None:
             supporting = hypothesis.get("supporting", [])
             contradicting = hypothesis.get("contradicting", [])
             if supporting:
-                st.markdown("**Supporting evidence**")
-                st.dataframe(supporting, width="stretch", hide_index=True)
+                st.markdown("**支持證據**")
+                st.dataframe(localized_rows(supporting), width="stretch", hide_index=True)
             if contradicting:
-                st.markdown("**Contradicting evidence**")
-                st.dataframe(contradicting, width="stretch", hide_index=True)
+                st.markdown("**反對證據**")
+                st.dataframe(localized_rows(contradicting), width="stretch", hide_index=True)
 
     st.subheader("檢視被引用的原始事件")
     references = cited_event_ids(payload)
@@ -109,17 +201,17 @@ def _render_evidence(payload: dict[str, Any]) -> None:
     if not available:
         st.info("這份報告沒有可檢視的引用事件。")
         return
-    selected = st.selectbox("Evidence event ID", available)
+    selected = st.selectbox("證據事件 ID", available)
     event = events[selected]
-    st.json({key: value for key, value in event.items() if key != "raw"})
+    st.json(localized_rows([{key: value for key, value in event.items() if key != "raw"}])[0])
     st.code(event.get("raw") or event.get("message", ""), language="text")
 
 
 def _render_agents(payload: dict[str, Any]) -> None:
-    st.subheader("Agent findings")
+    st.subheader("Agent 分析結果")
     for finding in payload["findings"]:
         with st.expander(
-            f"{finding['agent']} · {finding['title']} · {finding['confidence']:.0%}",
+            f"{AGENT_LABELS.get(finding['agent'], finding['agent'])} · {finding['title']} · {finding['confidence']:.0%}",
             expanded=finding["agent"] == "Root Cause Agent",
         ):
             st.write(finding["summary"])
@@ -127,35 +219,35 @@ def _render_agents(payload: dict[str, Any]) -> None:
                 for detail in finding["details"]:
                     st.markdown(f"- {detail}")
             if finding.get("evidence"):
-                st.dataframe(finding["evidence"], width="stretch", hide_index=True)
+                st.dataframe(localized_rows(finding["evidence"]), width="stretch", hide_index=True)
 
 
 def _render_handoffs(payload: dict[str, Any]) -> None:
-    st.subheader("Agent message ledger")
-    st.caption("訊息順序、回覆對象、payload 與 evidence references 都經過合約驗證。")
-    st.dataframe(payload["agent_messages"], width="stretch", hide_index=True)
+    st.subheader("Agent 訊息紀錄")
+    st.caption("訊息順序、回覆對象、資料內容與證據引用都經過合約驗證。")
+    st.dataframe(localized_rows(payload["agent_messages"]), width="stretch", hide_index=True)
 
-    st.subheader("Coordinator activities")
-    st.dataframe(payload["activities"], width="stretch", hide_index=True)
+    st.subheader("協調器活動")
+    st.dataframe(localized_rows(payload["activities"]), width="stretch", hide_index=True)
 
-    st.subheader("Reasoning handoffs")
-    st.dataframe(payload["handoffs"], width="stretch", hide_index=True)
+    st.subheader("推理交接")
+    st.dataframe(localized_rows(payload["handoffs"]), width="stretch", hide_index=True)
 
 
 def _render_data_quality(payload: dict[str, Any]) -> None:
     parse = payload["parse"]
     stats = parse["stats"]
-    st.subheader("Parse quality")
-    st.json(stats)
+    st.subheader("解析品質")
+    st.json(localized_rows([stats])[0])
     issues = parse["issues"]
     if issues:
         st.warning(f"保留了 {len(issues)} 個資料品質問題；沒有任何非空白行被靜默丟棄。")
-        st.dataframe(issues, width="stretch", hide_index=True)
+        st.dataframe(localized_rows(issues), width="stretch", hide_index=True)
     else:
         st.success("所有非空白行都已解析，沒有資料品質問題。")
 
     events = payload.get("events", [])
-    st.subheader("Redacted event preview")
+    st.subheader("已遮蔽敏感資訊的事件預覽")
     if len(events) > 500:
         st.caption(f"共 {len(events):,} 筆；畫面僅顯示前 500 筆，下載報告仍包含全部事件。")
     preview = [
@@ -168,18 +260,18 @@ def _render_data_quality(payload: dict[str, Any]) -> None:
         }
         for event in events[:500]
     ]
-    st.dataframe(preview, width="stretch", hide_index=True)
+    st.dataframe(localized_rows(preview), width="stretch", hide_index=True)
 
 
 def _render_report(payload: dict[str, Any]) -> None:
     st.divider()
-    st.caption(f"Run ID · {payload['run_id']}")
+    st.caption(f"分析 ID · {payload['run_id']}")
     overview, evidence, agents, handoffs, quality = st.tabs([
-        "Overview",
-        "Evidence",
-        "Agents",
-        "Handoffs",
-        "Data quality",
+        "總覽",
+        "證據",
+        "Agent 分析",
+        "交接紀錄",
+        "資料品質",
     ])
     with overview:
         _render_overview(payload)
@@ -209,12 +301,12 @@ def main() -> None:
     )
     st.title("LogCouncil")
     st.markdown("**把 log 交給一組可稽核的 Agents，取得證據導向的事故解釋與下一步。**")
-    st.caption("Local-first · logs only · read-only recommendations · no API key required")
+    st.caption("本機優先 · 僅分析 log · 僅提供唯讀建議 · 不需要 API key")
 
     with st.sidebar:
         st.header("分析團隊")
         for name, responsibility in AGENTS:
-            st.markdown(f"**{name}**  \n{responsibility}")
+            st.markdown(f"**{AGENT_LABELS.get(name, name)}**  \n{responsibility}")
         st.divider()
         st.info(
             "分析只在執行 LogCouncil 的環境中完成，不會送往外部 LLM/API。"
@@ -238,7 +330,7 @@ def main() -> None:
         upload = st.file_uploader(
             "選擇 UTF-8 log",
             type=("log", "txt", "jsonl"),
-            help="最大 50 MB；檔案只在本機分析。",
+            help="最大 50 MB；檔案只在目前的 LogCouncil 執行環境中分析。",
         )
         if upload is not None:
             try:

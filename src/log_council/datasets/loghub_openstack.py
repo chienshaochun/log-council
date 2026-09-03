@@ -55,7 +55,7 @@ def parse_openstack_text(text: str) -> ParsedLog:
             issues.append(ParseIssue(
                 line_number=line_number,
                 code="unrecognized_openstack_format",
-                detail="Line was preserved as an unstructured INFO event.",
+                detail="此行已保留為非結構化 INFO 事件。",
                 raw=line,
             ))
             continue
@@ -67,7 +67,7 @@ def parse_openstack_text(text: str) -> ParsedLog:
             issues.append(ParseIssue(
                 line_number=line_number,
                 code="invalid_timestamp",
-                detail="Could not parse the OpenStack timestamp.",
+                detail="無法解析 OpenStack 時間戳記。",
                 raw=line,
             ))
         request = REQUEST_ID.search(values["context"])

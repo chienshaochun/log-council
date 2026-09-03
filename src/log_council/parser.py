@@ -119,7 +119,7 @@ def parse_log_document(text: str) -> ParsedLog:
                 invalid_timestamp_count += 1
                 issues.append(ParseIssue(
                     line_number, "invalid_timestamp",
-                    f"Could not parse timestamp: {timestamp_value}", line,
+                    f"無法解析時間戳記：{timestamp_value}", line,
                 ))
         else:
             event = _text_event(line, event_index)
@@ -128,14 +128,14 @@ def parse_log_document(text: str) -> ParsedLog:
                 if event.timestamp is None:
                     invalid_timestamp_count += 1
                     issues.append(ParseIssue(
-                        line_number, "invalid_timestamp", "Could not parse text-log timestamp", line,
+                        line_number, "invalid_timestamp", "無法解析文字 log 的時間戳記", line,
                     ))
             else:
                 fallback_count += 1
                 code = "unsupported_json_type" if data is not None else "unrecognized_format"
                 issues.append(ParseIssue(
                     line_number, code,
-                    "Line was preserved as an unstructured INFO event.", line,
+                    "此行已保留為非結構化 INFO 事件。", line,
                 ))
 
         seen_ids[event.id] += 1
@@ -145,7 +145,7 @@ def parse_log_document(text: str) -> ParsedLog:
             event = replace(event, id=f"{original_id}#{seen_ids[original_id]}")
             issues.append(ParseIssue(
                 line_number, "duplicate_event_id",
-                f"Duplicate event ID '{original_id}' was renamed to '{event.id}'.", line,
+                f"重複的事件 ID「{original_id}」已重新命名為「{event.id}」。", line,
             ))
         events.append(event)
 

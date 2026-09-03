@@ -50,12 +50,12 @@ log-council analyze .\incident.log --output .\report.json
 ## 啟動 Web UI
 
 ```powershell
-streamlit run streamlit_app.py
+streamlit run app.py
 ```
 
 瀏覽器介面可貼上或上傳 log，查看 Overview、Evidence、Agents、Handoffs 與 Data quality，並下載已遮蔽常見秘密的 JSON 報告。分析在本機執行，不需要 API key，也不會執行建議的操作。
 
-部署至 Streamlit Community Cloud 時，請使用根目錄的 `streamlit_app.py` 與 Python 3.12。完整欄位與部署後檢查請參閱 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)。
+部署至 Streamlit Community Cloud 時，請使用根目錄的 `app.py` 與 Python 3.12。完整欄位與部署後檢查請參閱 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)。
 
 隱私提醒：本機啟動時 log 留在本機程序；使用 Community Cloud 時，上傳內容會傳到 Streamlit 的雲端執行環境。LogCouncil 不會再把內容轉送至外部 LLM/API，但公開部署不等同本機處理，請勿上傳未獲授權的敏感 production logs。
 

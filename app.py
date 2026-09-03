@@ -1,4 +1,4 @@
-"""Streamlit Community Cloud entrypoint."""
+"""LogCouncil Streamlit deployment entrypoint."""
 
 from log_council.app import main
 

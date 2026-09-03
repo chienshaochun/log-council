@@ -10,7 +10,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 class DeploymentContractTests(unittest.TestCase):
     def test_cloud_entrypoint_and_single_dependency_file_are_present(self) -> None:
-        self.assertTrue((PROJECT_ROOT / "streamlit_app.py").is_file())
+        self.assertTrue((PROJECT_ROOT / "app.py").is_file())
+        self.assertFalse((PROJECT_ROOT / "streamlit_app.py").exists())
         self.assertTrue((PROJECT_ROOT / "requirements.txt").is_file())
         self.assertFalse((PROJECT_ROOT / "environment.yml").exists())
         self.assertTrue((PROJECT_ROOT / "environment.local.yml").is_file())

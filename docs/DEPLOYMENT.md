@@ -10,7 +10,7 @@ A Community Cloud deployment is remote processing: uploaded logs are sent to the
 
 - Repository: `chienshaochun/log-council`
 - Branch: `main`
-- Entrypoint: `streamlit_app.py`
+- Entrypoint: `app.py`
 - Python: `3.12`
 - Secrets: leave empty
 

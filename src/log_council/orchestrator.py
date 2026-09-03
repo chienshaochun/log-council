@@ -3,7 +3,13 @@ from __future__ import annotations
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
 
-from .agents import PatternAgent, ReviewerAgent, RootCauseAgent, TimelineAgent
+from .agents import (
+    CorrelationAgent,
+    PatternAgent,
+    ReviewerAgent,
+    RootCauseAgent,
+    TimelineAgent,
+)
 from .collaboration import EvidenceRegistry, HandoffLedger
 from .models import Activity, AgentFinding, AnalysisReport, Evidence, Handoff, LogEvent
 
@@ -28,6 +34,7 @@ class CouncilOrchestrator:
     def __init__(self) -> None:
         self.pattern = PatternAgent()
         self.timeline = TimelineAgent()
+        self.correlation = CorrelationAgent()
         self.root_cause = RootCauseAgent()
         self.reviewer = ReviewerAgent()
 
@@ -47,16 +54,24 @@ class CouncilOrchestrator:
             "Coordinator", "Timeline Agent", "task", "Reconstruct the incident timeline",
             "Find the earliest precursor, propagation symptoms, failure point, and recovery evidence.",
         )
+        correlation_task = ledger.add(
+            "Coordinator", "Correlation Agent", "task", "Correlate related events",
+            "Connect signals by service, identifiers, and bounded time proximity while retaining distractors.",
+        )
 
         # Specialists run concurrently, while ledger insertion stays deterministic.
-        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="log-council") as executor:
+        with ThreadPoolExecutor(max_workers=3, thread_name_prefix="log-council") as executor:
             pattern_future = executor.submit(self.pattern.analyze, events)
             timeline_future = executor.submit(self.timeline.analyze, events)
+            correlation_future = executor.submit(self.correlation.analyze, events)
             pattern = pattern_future.result()
             timeline = timeline_future.result()
+            correlation, correlations = correlation_future.result()
 
         registry.validate_finding(pattern)
         registry.validate_finding(timeline)
+        registry.validate_finding(correlation)
+        registry.validate_correlations(correlations)
         pattern_message = ledger.add(
             "Pattern Agent", "Coordinator", "finding", pattern.title, pattern.summary,
             evidence_ids=_evidence_ids(pattern.evidence), in_reply_to=pattern_task.message_id,
@@ -65,15 +80,32 @@ class CouncilOrchestrator:
             "Timeline Agent", "Coordinator", "finding", timeline.title, timeline.summary,
             evidence_ids=_evidence_ids(timeline.evidence), in_reply_to=timeline_task.message_id,
         )
+        correlation_message = ledger.add(
+            "Correlation Agent", "Coordinator", "finding", correlation.title,
+            correlation.summary, evidence_ids=_evidence_ids(correlation.evidence),
+            in_reply_to=correlation_task.message_id,
+        )
 
-        specialist_evidence = _evidence_ids([*pattern.evidence, *timeline.evidence])
+        specialist_evidence = _evidence_ids([
+            *pattern.evidence,
+            *timeline.evidence,
+            *correlation.evidence,
+        ])
         cause_task = ledger.add(
             "Coordinator", "Root Cause Agent", "task", "Compare root-cause hypotheses",
             "Use the specialist findings to rank explanations without exceeding the supplied logs.",
             evidence_ids=specialist_evidence,
-            payload_refs=(pattern_message.message_id, timeline_message.message_id),
+            payload_refs=(
+                pattern_message.message_id,
+                timeline_message.message_id,
+                correlation_message.message_id,
+            ),
         )
-        root_finding, hypotheses, rule = self.root_cause.analyze(events)
+        root_finding, hypotheses, rule = self.root_cause.analyze(
+            events,
+            specialist_findings=[pattern, timeline, correlation],
+            correlations=correlations,
+        )
         registry.validate_finding(root_finding)
         registry.validate_hypotheses(hypotheses)
         cause_message = ledger.add(
@@ -110,7 +142,11 @@ class CouncilOrchestrator:
                 evidence_ids=_evidence_ids(initial_review.evidence),
                 payload_refs=(cause_message.message_id, review_message.message_id),
             )
-            final_root, hypotheses = self.root_cause.revise(hypotheses, initial_review)
+            final_root, hypotheses = self.root_cause.revise(
+                hypotheses,
+                initial_review,
+                prior_finding=root_finding,
+            )
             registry.validate_finding(final_root)
             registry.validate_hypotheses(hypotheses)
             revision_message = ledger.add(
@@ -132,10 +168,17 @@ class CouncilOrchestrator:
                 in_reply_to=final_review_task.message_id,
             )
 
-        findings: list[AgentFinding] = [pattern, timeline, final_root, final_review]
+        findings: list[AgentFinding] = [
+            pattern,
+            timeline,
+            correlation,
+            final_root,
+            final_review,
+        ]
         handoffs = [
             Handoff("Pattern Agent", "Root Cause Agent", "Which failure pattern best explains the incident?", "Repeated symptoms need a causal explanation."),
             Handoff("Timeline Agent", "Root Cause Agent", "Did the suspected trigger precede downstream failures?", "Sequence is required before claiming causality."),
+            Handoff("Correlation Agent", "Root Cause Agent", "Which signals form an evidence-bound service propagation chain?", "Time proximity alone must not be presented as confirmed causality."),
             Handoff("Root Cause Agent", "Reviewer Agent", "Can a competing hypothesis explain the same evidence?", "The leading cause needs adversarial review."),
         ]
         if has_challenge:
@@ -146,7 +189,8 @@ class CouncilOrchestrator:
         activities = [
             Activity(1, pattern.agent, "Pattern scan", pattern.summary),
             Activity(1, timeline.agent, "Timeline reconstruction", timeline.summary),
-            Activity(2, "Coordinator", "Specialist findings validated", "Pattern and Timeline evidence was checked against the source-event registry."),
+            Activity(1, correlation.agent, "Event correlation", correlation.summary),
+            Activity(2, "Coordinator", "Specialist findings validated", "Pattern, Timeline, and Correlation evidence was checked against the source-event registry."),
             Activity(3, root_finding.agent, "Hypothesis comparison", root_finding.summary),
             Activity(4, initial_review.agent, "Adversarial review", initial_review.summary),
         ]
@@ -181,6 +225,7 @@ class CouncilOrchestrator:
                 "Include logs from the affected service and its direct dependencies.",
                 "Preserve request IDs, trace IDs, service names, and original timestamps.",
             ],
+            correlations=correlations,
             run_id=run_id,
             agent_messages=list(ledger.messages),
         )

@@ -123,6 +123,15 @@ class Activity:
     status: str = "completed"
 
 
+@dataclass(frozen=True)
+class CorrelationLink:
+    source_event_id: str
+    target_event_id: str
+    relation: str
+    basis: str
+    delta_seconds: float | None = None
+
+
 @dataclass
 class Hypothesis:
     title: str
@@ -149,6 +158,7 @@ class AnalysisReport:
     caveat: str
     evidence_chain: list[str]
     recommended_actions: list[str]
+    correlations: list[CorrelationLink] = field(default_factory=list)
     run_id: str = ""
     agent_messages: list[AgentMessage] = field(default_factory=list)
     generated_at: datetime = field(default_factory=datetime.now)
@@ -175,6 +185,7 @@ class AnalysisReport:
             },
             "evidence_chain": self.evidence_chain,
             "recommended_actions": self.recommended_actions,
+            "correlations": [asdict(item) for item in self.correlations],
             "hypotheses": [item.to_dict() for item in self.hypotheses],
             "findings": [item.to_dict() for item in self.findings],
             "handoffs": [asdict(item) for item in self.handoffs],

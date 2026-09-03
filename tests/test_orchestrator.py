@@ -22,7 +22,7 @@ class OrchestratorTests(unittest.TestCase):
         report = CouncilOrchestrator().analyze(events)
 
         kinds = [message.kind for message in report.agent_messages]
-        self.assertEqual(len(report.agent_messages), 12)
+        self.assertEqual(len(report.agent_messages), 14)
         self.assertEqual(kinds.count("challenge"), 1)
         self.assertEqual(kinds.count("revision_request"), 1)
         self.assertEqual(kinds.count("revision"), 1)
@@ -76,10 +76,33 @@ class OrchestratorTests(unittest.TestCase):
         report = CouncilOrchestrator().analyze(events)
 
         kinds = [message.kind for message in report.agent_messages]
-        self.assertEqual(len(report.agent_messages), 8)
+        self.assertEqual(len(report.agent_messages), 10)
         self.assertNotIn("challenge", kinds)
         self.assertNotIn("revision", kinds)
         self.assertEqual(kinds[-1], "decision")
+
+    def test_correlation_agent_is_auditable_part_of_consensus(self) -> None:
+        report = CouncilOrchestrator().analyze(parse_log_text(INCIDENT))
+
+        self.assertEqual(report.agent_count, 5)
+        self.assertIn("Correlation Agent", [finding.agent for finding in report.findings])
+        root_finding = next(
+            finding for finding in report.findings if finding.agent == "Root Cause Agent"
+        )
+        self.assertIn("Consumed 3 validated specialist findings", root_finding.details[0])
+        correlation_messages = [
+            message for message in report.agent_messages
+            if message.sender == "Correlation Agent"
+        ]
+        self.assertEqual(len(correlation_messages), 1)
+        self.assertTrue(report.correlations)
+        event_ids = {event.id for event in report.events}
+        for link in report.correlations:
+            self.assertIn(link.source_event_id, event_ids)
+            self.assertIn(link.target_event_id, event_ids)
+            self.assertGreaterEqual(link.delta_seconds or 0, 0)
+        serialized = report.to_dict(include_events=False)
+        self.assertEqual(len(serialized["correlations"]), len(report.correlations))
 
     def test_low_evidence_result_is_explicitly_inconclusive(self) -> None:
         events = parse_log_text(

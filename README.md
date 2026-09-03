@@ -1,6 +1,6 @@
 # LogCouncil
 
-LogCouncil 是一個 evidence-first 的多-Agent log 分析工具。它會讓不同角色分別檢查異常模式、事件時間線與可能根因，再由 Reviewer 尋找反證，最後產生可追溯至原始事件的分析報告。
+LogCouncil 是一個 evidence-first 的多-Agent log 分析工具。它會讓不同角色分別檢查異常模式、事件時間線、跨服務關聯與可能根因，再由 Reviewer 尋找反證，最後產生可追溯至原始事件的分析報告。
 
 目前專案處於 MVP 建置階段。核心分析預設在本機執行，不需要 API key。
 
@@ -33,7 +33,7 @@ python -m pytest
 
 ## 真實 Log 資料
 
-第一個整合資料集是 Loghub OpenStack 2k parser sample。第三方原始資料不會提交至本 repository；來源、固定版本、checksum 與下載方式請參閱 [`data/README.md`](data/README.md)。
+目前整合 Loghub OpenStack 2k parser sample 與 RCAEval RE3-OB logs-only 根因案例。第三方原始資料不會提交至本 repository；來源、固定版本、checksum 與下載方式請參閱 [`data/README.md`](data/README.md)。
 
 ```powershell
 python scripts/download_dataset.py loghub-openstack-2k
@@ -53,8 +53,8 @@ MVP 僅分析 logs；metrics、distributed traces、packet captures 與 alarm-co
 
 ```text
 Pattern Agent ──┐
-                ├─> Root Cause Agent ─> Reviewer Agent ─> Consensus Report
-Timeline Agent ─┘
+Timeline Agent ─┼─> Root Cause Agent ─> Reviewer Agent ─> Consensus Report
+Correlation Agent ─┘
 ```
 
 所有 Agent 結論都必須引用事件 ID。第一版採 deterministic workflow，以便離線執行、測試與重播；後續再透過 provider adapter 接入 LLM。

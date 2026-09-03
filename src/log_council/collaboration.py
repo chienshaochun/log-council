@@ -2,7 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from .models import AgentFinding, AgentMessage, Evidence, Hypothesis, LogEvent
+from .models import (
+    AgentFinding,
+    AgentMessage,
+    CorrelationLink,
+    Evidence,
+    Hypothesis,
+    LogEvent,
+)
 
 
 class ContractError(ValueError):
@@ -35,6 +42,14 @@ class EvidenceRegistry:
             raise ContractError(f"Invalid confidence from {finding.agent}: {finding.confidence}")
         self.validate_evidence(finding.evidence)
 
+    def validate_correlations(self, links: Iterable[CorrelationLink]) -> None:
+        for link in links:
+            self.validate_ids((link.source_event_id, link.target_event_id))
+            if link.source_event_id == link.target_event_id:
+                raise ContractError("Correlation link must connect two different events")
+            if link.delta_seconds is not None and link.delta_seconds < 0:
+                raise ContractError("Correlation link cannot move backward in time")
+
     def validate_hypotheses(self, hypotheses: Iterable[Hypothesis]) -> None:
         for hypothesis in hypotheses:
             if not 0 <= hypothesis.confidence <= 1:
@@ -48,6 +63,8 @@ ALLOWED_KINDS: dict[tuple[str, str], frozenset[str]] = {
     ("Pattern Agent", "Coordinator"): frozenset({"finding"}),
     ("Coordinator", "Timeline Agent"): frozenset({"task"}),
     ("Timeline Agent", "Coordinator"): frozenset({"finding"}),
+    ("Coordinator", "Correlation Agent"): frozenset({"task"}),
+    ("Correlation Agent", "Coordinator"): frozenset({"finding"}),
     ("Coordinator", "Root Cause Agent"): frozenset({"task", "revision_request"}),
     ("Root Cause Agent", "Coordinator"): frozenset({"hypothesis", "revision"}),
     ("Coordinator", "Reviewer Agent"): frozenset({"review_request"}),

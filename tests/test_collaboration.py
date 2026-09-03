@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 from log_council.collaboration import ContractError, EvidenceRegistry, HandoffLedger
-from log_council.models import AgentFinding, Evidence, LogEvent
+from log_council.models import AgentFinding, CorrelationLink, Evidence, LogEvent
 
 
 def event(event_id: str = "EVT-001") -> LogEvent:
@@ -31,6 +31,26 @@ class EvidenceRegistryTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ContractError, "Invalid confidence"):
             registry.validate_finding(finding)
+
+    def test_rejects_correlation_with_unknown_event(self) -> None:
+        registry = EvidenceRegistry([event()])
+        link = CorrelationLink("EVT-001", "EVT-999", "time", "basis", 1)
+
+        with self.assertRaisesRegex(ContractError, "EVT-999"):
+            registry.validate_correlations([link])
+
+    def test_rejects_backward_correlation(self) -> None:
+        registry = EvidenceRegistry([event("E1"), event("E2")])
+        link = CorrelationLink("E1", "E2", "time", "basis", -1)
+
+        with self.assertRaisesRegex(ContractError, "backward"):
+            registry.validate_correlations([link])
+
+    def test_accepts_correlation_between_registered_events(self) -> None:
+        registry = EvidenceRegistry([event("E1"), event("E2")])
+        link = CorrelationLink("E1", "E2", "time", "basis", 1)
+
+        registry.validate_correlations([link])
 
 
 class HandoffLedgerTests(unittest.TestCase):

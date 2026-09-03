@@ -2,7 +2,7 @@
 
 Status: MVP contract  
 Version: 0.1  
-Last updated: 2026-09-02
+Last updated: 2026-09-03
 
 ## 1. Product promise
 
@@ -118,7 +118,7 @@ Given a supported log file, a user must be able to:
 
 1. start an analysis without an API key;
 2. inspect parse coverage and all rejected or fallback lines;
-3. see Pattern and Timeline investigations as separate activities;
+3. see Pattern, Timeline, and Correlation investigations as separate activities;
 4. inspect every Agent handoff;
 5. click every cited event ID and reach the original log line;
 6. distinguish observations, hypotheses, contradictions, and recommendations;
@@ -138,4 +138,3 @@ No-consensus and Agent-failure paths are required product states, not exceptiona
 - security event investigation;
 - conversational memory across unrelated incidents;
 - claiming universal root-cause accuracy from a limited benchmark.
-

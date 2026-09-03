@@ -3,6 +3,8 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from log_council import CouncilOrchestrator
+from log_council.agents import CorrelationAgent
 from log_council.datasets import load_manifest, load_rcaeval_case
 from log_council.datasets.contracts import validate_dataset_file
 
@@ -79,6 +81,43 @@ class OfficialRCAEvalCaseTests(unittest.TestCase):
         for event in self.case.analysis.events:
             self.assertTrue(forbidden.isdisjoint(event.attributes))
             self.assertNotIn("re3ob_cartservice_f1_1", str(event.attributes.values()))
+
+    def test_correlation_agent_finds_log_only_onset_and_propagation(self) -> None:
+        finding, links = CorrelationAgent().analyze(list(self.case.analysis.events))
+        by_id = {event.id: event for event in self.case.analysis.events}
+
+        onset = by_id[finding.evidence[0].event_id]
+        self.assertEqual(onset.service, "cartservice")
+        self.assertGreaterEqual(onset.attributes["seconds_from_injection"], 0)
+        self.assertTrue(any(
+            link.relation == "bounded-time-proximity"
+            and by_id[link.target_event_id].service == "frontend"
+            for link in links
+        ))
+        contextual = [
+            by_id[evidence.event_id]
+            for evidence in finding.evidence
+            if evidence.stance == "context"
+        ]
+        self.assertTrue(any(
+            event.service == "paymentservice"
+            and event.attributes["seconds_from_injection"] < 0
+            for event in contextual
+        ))
+
+    def test_full_council_ranks_the_labeled_service_without_label_input(self) -> None:
+        report = CouncilOrchestrator().analyze(list(self.case.analysis.events))
+        leading = report.hypotheses[0]
+
+        self.assertIn("numeric conversion overflow", leading.title.lower())
+        self.assertIn(self.case.ground_truth.root_cause_service, leading.title)
+        self.assertIn(self.case.ground_truth.root_cause_service, report.root_cause)
+        by_id = {event.id: event for event in self.case.analysis.events}
+        self.assertTrue(leading.supporting)
+        self.assertTrue(all(
+            by_id[evidence.event_id].service == self.case.ground_truth.root_cause_service
+            for evidence in leading.supporting
+        ))
 
 
 if __name__ == "__main__":

@@ -60,6 +60,9 @@ class StreamlitAppTests(unittest.TestCase):
         self.assertEqual(app.title[0].value, "LogCouncil")
         self.assertEqual(app.radio[0].value, "貼上 log")
         self.assertEqual(app.button[0].label, "開始分析")
+        self.assertTrue(any(
+            "Community Cloud" in item.value for item in app.info
+        ))
 
     def test_pasted_log_renders_complete_council_report(self) -> None:
         app = AppTest.from_file(str(APP_PATH)).run(timeout=20)

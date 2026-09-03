@@ -2,6 +2,10 @@
 
 LogCouncil is prepared for deployment from the public GitHub repository without secrets or an external API key.
 
+## Privacy boundary
+
+A Community Cloud deployment is remote processing: uploaded logs are sent to the Streamlit-hosted app environment. LogCouncil does not forward them to an external LLM or API, but users must not upload production logs unless they are authorized to send that data to the hosting environment. Run the app locally when logs must remain on the user's machine.
+
 ## Community Cloud fields
 
 - Repository: `chienshaochun/log-council`

@@ -216,7 +216,11 @@ def main() -> None:
         for name, responsibility in AGENTS:
             st.markdown(f"**{name}**  \n{responsibility}")
         st.divider()
-        st.info("分析在本機執行。畫面與下載報告會遮蔽常見秘密；原始輸入不會被修改。")
+        st.info(
+            "分析只在執行 LogCouncil 的環境中完成，不會送往外部 LLM/API。"
+            "若使用 Community Cloud，上傳內容會進入該雲端執行環境。"
+            "畫面與下載報告會遮蔽常見秘密；原始輸入不會被修改。"
+        )
 
     mode = st.radio("輸入方式", ("貼上 log", "上傳檔案"), horizontal=True)
     input_text = ""

@@ -22,7 +22,7 @@ conda activate log-council
 若環境已存在，可直接安裝或更新專案：
 
 ```powershell
-python -m pip install -e ".[dev,ui]"
+python -m pip install -e ".[datasets,dev,ui]"
 ```
 
 ## 測試

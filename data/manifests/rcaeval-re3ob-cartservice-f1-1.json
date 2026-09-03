@@ -1,0 +1,39 @@
+{
+  "dataset_id": "rcaeval-re3ob-cartservice-f1-1",
+  "name": "RCAEval RE3 Online Boutique cartservice F1 case 1",
+  "version": "hf-afeacb11bcc9",
+  "source_repository": "https://huggingface.co/datasets/phamquiluan/RCAEval",
+  "source_revision": "afeacb11bcc94dadfd1c8f483ee4377b2b8b614e",
+  "environment": "Online Boutique microservices with a controlled code-level fault injection",
+  "license_notice": "RCAEval code and datasets are distributed under the MIT License.",
+  "citation": [
+    "Luan Pham, Hongyu Zhang, Huong Ha, Flora Salim, Xiuzhen Zhang. RCAEval: A Benchmark for Root Cause Analysis of Microservice Systems with Telemetry Data. WWW Companion 2025.",
+    "Luan Pham, Huong Ha, Hongyu Zhang. Root Cause Analysis for Microservice System based on Causal Inference: How Far Are We? ASE 2024."
+  ],
+  "files": [
+    {
+      "name": "cases.parquet",
+      "role": "ground_truth_index",
+      "url": "https://huggingface.co/datasets/phamquiluan/RCAEval/resolve/afeacb11bcc94dadfd1c8f483ee4377b2b8b614e/cases.parquet?download=true",
+      "sha256": "c49a288920dbba2e8e724679a14636d5c7eb2b45426bba14007ef79a6c0ab1bb",
+      "expected_lines": null,
+      "max_bytes": 100000
+    },
+    {
+      "name": "logs.parquet",
+      "role": "raw_logs",
+      "url": "https://huggingface.co/datasets/phamquiluan/RCAEval/resolve/afeacb11bcc94dadfd1c8f483ee4377b2b8b614e/re3ob_cartservice_f1_1/logs.parquet?download=true",
+      "sha256": "daba5217f71f5a595e28cf9d5a3bda414d6e0cfaf19aa754a24aad9c14677a63",
+      "expected_lines": null,
+      "max_bytes": 250000
+    },
+    {
+      "name": "inject_time.txt",
+      "role": "incident_anchor",
+      "url": "https://huggingface.co/datasets/phamquiluan/RCAEval/resolve/afeacb11bcc94dadfd1c8f483ee4377b2b8b614e/re3ob_cartservice_f1_1/inject_time.txt?download=true",
+      "sha256": "3acf7c7b4c1388a39a895006b4963c0ae10f60eba4efc6590f5728e60d5a0567",
+      "expected_lines": 1,
+      "max_bytes": 100
+    }
+  ]
+}

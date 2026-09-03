@@ -17,6 +17,9 @@ from log_council.datasets.contracts import (
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MANIFESTS = {
     "loghub-openstack-2k": PROJECT_ROOT / "data" / "manifests" / "loghub-openstack-2k.json",
+    "rcaeval-re3ob-cartservice-f1-1": (
+        PROJECT_ROOT / "data" / "manifests" / "rcaeval-re3ob-cartservice-f1-1.json"
+    ),
 }
 
 
